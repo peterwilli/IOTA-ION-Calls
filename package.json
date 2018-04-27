@@ -1,0 +1,42 @@
+{
+  "name": "iota-ion",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "test": "vue-cli-service test",
+    "e2e": "vue-cli-service e2e"
+  },
+  "dependencies": {
+    "Base64": "^1.0.1",
+    "crypto-js": "^3.1.9-1",
+    "crypto-random-string": "^1.0.0",
+    "eventemitter3": "^3.1.0",
+    "iota.lib.js": "^0.4.7",
+    "lz-string": "^1.4.4",
+    "lzutf8": "^0.5.0",
+    "nanoid": "^1.0.2",
+    "random-number-csprng": "^1.0.2",
+    "seed-random": "^2.2.0",
+    "simple-peer": "^9.1.1",
+    "vue": "^2.5.16",
+    "vue-router": "^3.0.1"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "^3.0.0-beta.7",
+    "@vue/cli-plugin-e2e-nightwatch": "^3.0.0-beta.7",
+    "@vue/cli-plugin-unit-mocha": "^3.0.0-beta.7",
+    "@vue/cli-service": "^3.0.0-beta.7",
+    "@vue/test-utils": "^1.0.0-beta.10",
+    "chai": "^4.1.2",
+    "stylus": "^0.54.5",
+    "stylus-loader": "^3.0.1",
+    "vue-template-compiler": "^2.5.13"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 8"
+  ]
+}
