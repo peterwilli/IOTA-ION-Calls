@@ -45,7 +45,6 @@ export default {
             _this.ion.peer.addStream(stream)
           })
           _this.ion.peer.on('stream', (stream) => {
-            console.log('stream', stream);
             _this.$refs.chat_vid.srcObject = stream
             _this.$refs.chat_vid.play()
           })

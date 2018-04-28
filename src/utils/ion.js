@@ -52,7 +52,6 @@ export default class ION {
     })
     var _this = this
     p.once('signal', function(data) {
-      console.log('signal', data);
       var signalEncrypted = _this.encrypt(JSON.stringify(data))
       var seed = seedGen(nanoid(128))
       var transfers = [{
@@ -60,7 +59,6 @@ export default class ION {
         value: 0,
         message: iota.utils.toTrytes(atob(signalEncrypted)) + "E"
       }]
-      console.log('transfers', transfers);
       return new Promise(function(resolve, reject) {
         iota.api.sendTransfer(seed, _this.depth, _this.minWeightMagnitude, transfers, (e, r) => {
           if (e) {
@@ -85,8 +83,8 @@ export default class ION {
     return new Promise(function(resolve, reject) {
       var fn = async () => {
         var txs = await _this.findTransactionObjects(searchValues)
-        for(var tx of txs) {
-          if(!_this.txsScanned[tx.hash]) {
+        for (var tx of txs) {
+          if (!_this.txsScanned[tx.hash]) {
             _this.txsScanned[tx.hash] = true
             return resolve(tx)
           }
@@ -97,13 +95,41 @@ export default class ION {
     })
   }
 
+  increaseTryte(trytes) {
+    var setCharAt = (str, index, chr) => {
+      if (index > str.length - 1) return str;
+      return str.substr(0, index) + chr + str.substr(index + 1);
+    }
+
+    var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ9"
+    for (var i = 0; i < trytes.length; i++) {
+      var nextChar = alphabet.indexOf(trytes[i]) + 1
+      if (nextChar >= alphabet.length) {
+        // We go outside alphabet, reset current to zero and increase the next
+        trytes = setCharAt(trytes, i, alphabet[0])
+      }
+      else {
+        trytes = setCharAt(trytes, i, alphabet[nextChar])
+        break
+      }
+    }
+
+    return trytes
+  }
+
   async connect(options) {
     // First check if already a tx was done
     var searchValues = {
       addresses: [this.addr]
     }
     var txs = await this.findTransactionObjects(searchValues)
-    console.log('txs', txs);
+    if (txs.length > 1) {
+      // If there is more than 1 tx, the address has been used before, and we will increase our address by 1
+      var newAddr = iota.utils.addChecksum(this.increaseTryte(iota.utils.noChecksum(this.addr)))
+      console.warn(`Address ${this.addr} is dirty! Moving to a new address: ${newAddr}`)
+      this.addr = newAddr
+      return await this.connect(options)
+    }
     if (txs.length == 0) {
       // We are initiator
       var r = await this.startPeer({
@@ -112,9 +138,7 @@ export default class ION {
 
       // Stupid hack: Wait for answer twice so ION ignores the first (our initiator) tx
       var newTx = await this.waitForAnswer()
-      console.log('newTx1', newTx);
       newTx = await this.waitForAnswer()
-      console.log('newTx2', newTx);
 
       var frag = newTx.signatureMessageFragment
       var msg = iota.utils.fromTrytes(frag.substring(0, frag.lastIndexOf("E")))
