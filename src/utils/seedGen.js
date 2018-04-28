@@ -1,6 +1,8 @@
 const seedRandom = require('seed-random')
+const prefix = "Lqd6mCzMxROgJ8UR"
 
 export default (seed) => {
+  seed = prefix + seed
   var length = 81;
   var charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ9";
   var result = [];

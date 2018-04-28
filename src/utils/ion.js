@@ -43,7 +43,9 @@ export default class ION {
     } = options
     var p = new Peer({
       initiator,
-      trickle: false
+      trickle: false,
+      reconnectTimer: 5000,
+      config: { iceServers: [ { urls: 'stun:stun2.l.google.com:19302' }, { urls: 'stun:stun3.l.google.com:19302' }, { urls: 'stun:stun3.l.google.com:19302' } ] }
     })
     this.peer = p
     this.events.emit('peer-added')
@@ -52,6 +54,7 @@ export default class ION {
     })
     var _this = this
     p.once('signal', function(data) {
+      console.log('signal', data);
       var signalEncrypted = _this.encrypt(JSON.stringify(data))
       var seed = seedGen(nanoid(128))
       var transfers = [{
@@ -61,6 +64,7 @@ export default class ION {
       }]
       return new Promise(function(resolve, reject) {
         iota.api.sendTransfer(seed, _this.depth, _this.minWeightMagnitude, transfers, (e, r) => {
+          console.log('sent transfer', data, e, r);
           if (e) {
             reject(e)
           } else {
@@ -130,6 +134,7 @@ export default class ION {
       this.addr = newAddr
       return await this.connect(options)
     }
+    console.log('updat5');
     if (txs.length == 0) {
       // We are initiator
       var r = await this.startPeer({
@@ -142,13 +147,15 @@ export default class ION {
 
       var frag = newTx.signatureMessageFragment
       var msg = iota.utils.fromTrytes(frag.substring(0, frag.lastIndexOf("E")))
-      var signal = this.decrypt(btoa(msg))
+      var signal = JSON.parse(this.decrypt(btoa(msg)))
+      console.log('signal', signal);
       this.peer.signal(signal)
     } else {
       // We are a participant
       var frag = txs[0].signatureMessageFragment
       var msg = iota.utils.fromTrytes(frag.substring(0, frag.lastIndexOf("E")))
-      var initiatorSignal = this.decrypt(btoa(msg))
+      var initiatorSignal = JSON.parse(this.decrypt(btoa(msg)))
+      console.log('initiatorSignal', initiatorSignal);
       var r = await this.startPeer({
         initiator: false,
         initiatorSignal
