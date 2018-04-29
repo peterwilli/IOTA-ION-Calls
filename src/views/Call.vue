@@ -9,22 +9,36 @@
 
 <script>
 import ION from '@/utils/ion.js'
-import seedGen from '@/utils/seedGen.js'
+import tryteGen from '@/utils/tryteGen.js'
 import iota from '@/utils/iota.js'
+const nanoid = require('nanoid')
+
 export default {
   mounted() {
     var seed = this.$route.params.seed
-    var iotaSeed = seedGen(seed)
+    var iotaSeed = tryteGen(seed)
     var addr = iota.utils.addChecksum(iotaSeed)
     this.addr = addr
-    console.log(addr, seed)
-
-    this.connect()
+    if(this.$route.params.myTag) {
+      this.myTag = this.$route.params.myTag
+      this.connect()
+    }
+    else {
+      var myTag = tryteGen(nanoid(128), 16)
+      this.$router.replace({
+        name: 'call-tag',
+        params: {
+          seed,
+          myTag
+        }
+      })
+    }
   },
   data() {
     return {
       ion: null,
-      addr: null
+      addr: null,
+      myTag: null
     }
   },
   methods: {
@@ -38,7 +52,7 @@ export default {
         _this.$refs.my_vid.volume = 0
         _this.$refs.my_vid.play()
 
-        this.ion = new ION(this.$route.params.seed, this.addr)
+        this.ion = new ION(this.$route.params.seed, this.addr, this.myTag)
         this.ion.connect({})
         this.ion.events.on('peer-added', () => {
           _this.ion.peer.on('connect', () => {

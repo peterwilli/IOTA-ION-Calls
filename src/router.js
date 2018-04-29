@@ -17,6 +17,11 @@ export default new Router({
       path: '/call/:seed',
       name: 'call',
       component: Call
+    },
+    {
+      path: '/call/:seed/:myTag',
+      name: 'call-tag',
+      component: Call
     }
   ]
 })

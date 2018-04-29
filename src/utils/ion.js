@@ -1,14 +1,15 @@
 var Peer = require('simple-peer')
 var CryptoJS = require("crypto-js")
 import iota from '@/utils/iota.js'
-import seedGen from '@/utils/seedGen.js'
+import tryteGen from '@/utils/tryteGen.js'
 const nanoid = require('nanoid')
 var EventEmitter = require('eventemitter3')
 var LZString = require('lz-string')
 
 export default class ION {
-  constructor(encryptionKey, addr) {
+  constructor(encryptionKey, addr, myTag) {
     this.addr = addr
+    this.myTag = myTag
     this.encryptionKey = encryptionKey
     this.minWeightMagnitude = 9
     this.depth = 5
@@ -38,12 +39,11 @@ export default class ION {
 
   async startPeer(options) {
     var {
-      initiator,
-      initiatorSignal
+      initiator
     } = options
     var p = new Peer({
       initiator,
-      trickle: false,
+      trickle: true,
       reconnectTimer: 5000,
       config: { iceServers: [ { urls: 'stun:stun2.l.google.com:19302' }, { urls: 'stun:stun3.l.google.com:19302' }, { urls: 'stun:stun3.l.google.com:19302' } ] }
     })
@@ -52,31 +52,6 @@ export default class ION {
     p.on('error', function(err) {
       console.error('peer error', err)
     })
-    var _this = this
-    p.once('signal', function(data) {
-      console.log('signal', data);
-      var signalEncrypted = _this.encrypt(JSON.stringify(data))
-      var seed = seedGen(nanoid(128))
-      var transfers = [{
-        address: _this.addr,
-        value: 0,
-        message: iota.utils.toTrytes(atob(signalEncrypted)) + "E"
-      }]
-      return new Promise(function(resolve, reject) {
-        iota.api.sendTransfer(seed, _this.depth, _this.minWeightMagnitude, transfers, (e, r) => {
-          console.log('sent transfer', data, e, r);
-          if (e) {
-            reject(e)
-          } else {
-            resolve(r)
-          }
-        })
-      });
-    })
-
-    if (initiatorSignal) {
-      p.signal(initiatorSignal)
-    }
   }
 
   async waitForAnswer() {
@@ -93,9 +68,9 @@ export default class ION {
             return resolve(tx)
           }
         }
-        setTimeout(fn, 1000)
+        setTimeout(fn, 3000)
       }
-      setTimeout(fn, 1000)
+      setTimeout(fn, 3000)
     })
   }
 
@@ -127,15 +102,80 @@ export default class ION {
       addresses: [this.addr]
     }
     var txs = await this.findTransactionObjects(searchValues)
-    if (txs.length > 1) {
-      // If there is more than 1 tx, the address has been used before, and we will increase our address by 1
-      var newAddr = iota.utils.addChecksum(this.increaseTryte(iota.utils.noChecksum(this.addr)))
-      console.warn(`Address ${this.addr} is dirty! Moving to a new address: ${newAddr}`)
-      this.addr = newAddr
-      return await this.connect(options)
+    var shouldCreateTx = true
+    for(var tx of txs) {
+      _this.txsScanned[tx.hash] = true
+      if(tx.tag.indexOf(myTag) !== 0) {
+        // Is not mine, so we interpret it
+        var frag = tx.signatureMessageFragment
+        var msg = iota.utils.fromTrytes(frag.substring(0, frag.lastIndexOf("E")))
+        var signal = JSON.parse(this.decrypt(btoa(msg)))
+        console.log('signal', signal);
+        this.peer.signal(signal)
+      }
+      else {
+        shouldCreateTx = false
+      }
     }
-    console.log('updat5');
-    if (txs.length == 0) {
+    this.startPeer({
+      initiator: txs.length === 0
+    })
+    var p = this.peer
+    p.once('connect', () => {
+      
+    })
+    if(shouldCreateTx) {
+      var _this = this
+      p.on('signal', function(data) {
+        console.log('signal', data);
+        var signalEncrypted = _this.encrypt(JSON.stringify(data))
+        var seed = tryteGen(nanoid(128))
+        var transfers = [{
+          address: _this.addr,
+          value: 0,
+          message: iota.utils.toTrytes(atob(signalEncrypted)) + "E"
+        }]
+        iota.api.sendTransfer(seed, _this.depth, _this.minWeightMagnitude, transfers, (e, r) => {
+          console.log('sent transfer', data, e, r);
+          if (e) {
+            reject(e)
+          } else {
+            resolve(r)
+          }
+        })
+      })
+    }
+
+    p.on
+
+    return;
+    if (txs.length > 0) {
+      if(txs.length === 1) {
+        // Check if it's mine
+        if(txs[0].tag === myTag) {
+          // TODO: ignore creating new tx
+          shouldIgnoreTxCreation = true
+        }
+        else {
+          // We are a participant
+          var frag = txs[0].signatureMessageFragment
+          var msg = iota.utils.fromTrytes(frag.substring(0, frag.lastIndexOf("E")))
+          var initiatorSignal = JSON.parse(this.decrypt(btoa(msg)))
+          console.log('initiatorSignal', initiatorSignal);
+          var r = await this.startPeer({
+            initiator: false,
+            initiatorSignal
+          })
+        }
+      }
+      else {
+        // If there is more than 1 tx, the address has been used before, and we will increase our address by 1
+        var newAddr = iota.utils.addChecksum(this.increaseTryte(iota.utils.noChecksum(this.addr)))
+        console.warn(`Address ${this.addr} is dirty! Moving to a new address: ${newAddr}`)
+        this.addr = newAddr
+        return await this.connect(options)
+      }
+    } else {
       // We are initiator
       var r = await this.startPeer({
         initiator: true
@@ -150,16 +190,6 @@ export default class ION {
       var signal = JSON.parse(this.decrypt(btoa(msg)))
       console.log('signal', signal);
       this.peer.signal(signal)
-    } else {
-      // We are a participant
-      var frag = txs[0].signatureMessageFragment
-      var msg = iota.utils.fromTrytes(frag.substring(0, frag.lastIndexOf("E")))
-      var initiatorSignal = JSON.parse(this.decrypt(btoa(msg)))
-      console.log('initiatorSignal', initiatorSignal);
-      var r = await this.startPeer({
-        initiator: false,
-        initiatorSignal
-      })
     }
   }
 }

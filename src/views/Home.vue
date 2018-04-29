@@ -8,7 +8,7 @@
 </template>
 
 <script>
-import seedGen from '@/utils/seedGen.js'
+import tryteGen from '@/utils/tryteGen.js'
 import iota from '@/utils/iota.js'
 import Intro from '@/components/Intro.vue'
 
