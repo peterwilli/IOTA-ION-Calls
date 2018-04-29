@@ -19,12 +19,13 @@ export default {
     var iotaSeed = tryteGen(seed)
     var addr = iota.utils.addChecksum(iotaSeed)
     this.addr = addr
+    console.log('this.$route.params.myTag', this.$route.params.myTag);
     if(this.$route.params.myTag) {
       this.myTag = this.$route.params.myTag
       this.connect()
     }
     else {
-      var myTag = tryteGen(nanoid(128), 16)
+      var myTag = tryteGen(nanoid(128), 27)
       this.$router.replace({
         name: 'call-tag',
         params: {
