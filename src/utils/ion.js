@@ -99,7 +99,13 @@ export default class ION {
   processTx(tx) {
     var frag = tx.signatureMessageFragment
     var msg = iota.utils.fromTrytes(frag.substring(0, frag.lastIndexOf("E")))
-    var signal = JSON.parse(this.decrypt(btoa(msg)))
+    try {
+      var signal = JSON.parse(this.decrypt(btoa(msg)))
+    }
+    catch (e) {
+      console.error('Error parsing this message:', msg)
+      throw e
+    }
     console.log('processTx > signal', signal);
     this.peer.signal(signal)
   }
