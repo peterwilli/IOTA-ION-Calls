@@ -1,30 +1,47 @@
 <template lang="html">
-  <div class="full-view">
-    <div class="videos">
-      <video ref="chat_vid" class="chat-vid"></video>
-      <video ref="my_vid" class="my-vid"></video>
+  <div>
+    <div class="full-view">
+      <div class="videos">
+        <video ref="chat_vid" class="chat-vid"></video>
+        <div class="my-vid-container">
+          <video ref="my_vid" class="my-vid"></video>
+        </div>
+      </div>
     </div>
+    <div class="messages">
+      <div v-for="msg in messages" class="message">
+        {{ msg.message }}
+      </div>
+    </div>
+    <div class="chat">
+      <input type="text" :disabled="!connected" @keyup.enter="say()" :placeholder="connected ? 'Type a message...' : 'Waiting for others to appear...'" v-model="message" />
+    </div>
+    <share-window :url="getConnectionUrl()" v-if="!connected"></share-window>
   </div>
 </template>
 
 <script>
+import Noty from 'noty'
 import ION from '@/utils/ion.js'
 import tryteGen from '@/utils/tryteGen.js'
+import htmlEntities from '@/utils/html-entities.js'
 import iota from '@/utils/iota.js'
+import ShareWindow from '@/components/ShareWindow.vue'
 const nanoid = require('nanoid')
 
 export default {
+  components: {
+    ShareWindow
+  },
   mounted() {
     var seed = this.$route.params.seed
     var iotaSeed = tryteGen(seed)
     var addr = iota.utils.addChecksum(iotaSeed)
     this.addr = addr
-    console.log('this.$route.params.myTag', this.$route.params.myTag);
-    if(this.$route.params.myTag) {
+    if (this.$route.params.myTag) {
       this.myTag = this.$route.params.myTag
       this.connect()
-    }
-    else {
+    } else {
       var myTag = tryteGen(nanoid(128), 27)
       this.$router.replace({
         name: 'call-tag',
@@ -37,12 +54,27 @@ export default {
   },
   data() {
     return {
+      messages: [],
       ion: null,
       addr: null,
-      myTag: null
+      myTag: null,
+      message: "",
+      connected: false
     }
   },
   methods: {
+    say() {
+      if(this.ion.peer) {
+        this.ion.peer.send("msg:" + this.message)
+        this.messages.push({
+          message: this.message
+        })
+        this.message = ""
+      }
+    },
+    getConnectionUrl() {
+      return window.location.origin + "/#/call/" + this.$route.params.seed
+    },
     connect() {
       var _this = this
       navigator.getUserMedia({
@@ -58,10 +90,24 @@ export default {
         this.ion.events.on('peer-added', () => {
           _this.ion.peer.on('connect', () => {
             console.log('on connect!');
+            _this.connected = true
             _this.ion.peer.on('data', function(data) {
               var signalCmd = "signal:"
+              var msgCmd = "msg:"
               if (data.indexOf(signalCmd) === 0) {
                 _this.ion.peer.signal((data + "").substring(signalCmd.length, data.length))
+              } else if (data.indexOf(msgCmd) === 0) {
+                var message = (data + "").substring(msgCmd.length, data.length)
+                _this.messages.push({
+                  message
+                })
+
+                new Noty({
+                  text: htmlEntities(message),
+                  timeout: 2500,
+                  progressBar: true,
+                  layout: 'bottomCenter'
+                }).show()
               }
             })
             _this.ion.peer.on('signal', (data) => {
@@ -82,32 +128,86 @@ export default {
 </script>
 
 <style lang="stylus" scoped>
+.full-view {
+  position fixed
+  left 0
+  right 0
+  top 0
+  bottom 0
+  background: #6dd6ff
+}
+.messages {
+  position absolute
+  left 0
+  right 0
+  top 0
+  margin-bottom 50px
+  margin-top 100%
+  background #a7e7ff
+  .message {
+    padding 5px
+    border-top 1px dotted  #fff
+    border-bottom 1px dotted #36b0e0
+  }
+}
+.chat {
+  $chat-inner-color = #a7e7ff
+  background #f1f1f1
+  height 50px
+  left 0
+  right 0
+  bottom 0
+  position fixed
+  padding 5px
+  box-sizing border-box
+  border-top 3px solid #fff
+  -webkit-box-shadow: 0px -3px 0px 0px $chat-inner-color
+  -moz-box-shadow:    0px -3px 0px 0px $chat-inner-color
+  box-shadow:         0px -3px 0px 0px $chat-inner-color
+
+  input {
+    width 100%
+    height 100%
+    margin 0
+    padding 0
+    font-size 100%
+    background transparent
+    border 0
+    outline none
+  }
+}
 .videos {
-  display inline-block
-  position relative
-  margin 0 auto
+  position absolute
+  left 0
+  right 0
+  top 0
+  bottom 0
 
-  .my-vid {
+  .chat-vid {
     position absolute
-    width: 10%
-    height: 10%
+    left 0
+    top 0
+    width 100%
+    height 100%
+    object-fit cover!important
+  }
+
+  .my-vid-container {
+    position absolute
+    // width: 15%
+    height 15%
     left 15px
-    bottom 15px
+    bottom 65px
+    min-height 150px
+    // min-width 150px
+    object-fit cover!important
+    border 4px solid #fff
+    overflow hidden
 
-	border: 4px solid #e0e0e0;
-	-moz-box-shadow:
-		0px 0px 5px rgba(071,071,071,1),
-		inset 0px 0px 1px rgba(000,000,000,1);
-	-webkit-box-shadow:
-		0px 0px 5px rgba(071,071,071,1),
-		inset 0px 0px 1px rgba(000,000,000,1);
-	box-shadow:
-		0px 0px 5px rgba(071,071,071,1),
-		inset 0px 0px 1px rgba(000,000,000,1);
-	text-shadow:
-		0px -1px 0px rgba(000,000,000,0.2),
-		0px 1px 0px rgba(255,255,255,1);
-
+    .my-vid {
+      height 100%
+      object-fit cover!important
+    }
   }
 }
 </style>

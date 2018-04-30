@@ -1,5 +1,5 @@
 const seedRandom = require('seed-random')
-const prefix = "Lqd6mCzMxROgJ8UW"
+const prefix = "GiifLqhSM1zEWHYN"
 
 export default (seed, length = 81) => {
   seed = prefix + seed

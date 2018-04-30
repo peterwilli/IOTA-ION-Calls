@@ -17,6 +17,7 @@
     "lz-string": "^1.4.4",
     "lzutf8": "^0.5.0",
     "nanoid": "^1.0.2",
+    "noty": "^3.2.0-beta",
     "random-number-csprng": "^1.0.2",
     "seed-random": "^2.2.0",
     "simple-peer": "^9.1.1",
