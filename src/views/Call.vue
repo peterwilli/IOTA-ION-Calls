@@ -22,12 +22,14 @@
 
 <script>
 import Noty from 'noty'
-import ION from '@/utils/ion.js'
+import ION from 'iota-ion.lib.js'
+console.log(ION);
 import tryteGen from '@/utils/tryteGen.js'
 import htmlEntities from '@/utils/html-entities.js'
 import iota from '@/utils/iota.js'
 import ShareWindow from '@/components/ShareWindow.vue'
 const nanoid = require('nanoid')
+const Peer = require('simple-peer')
 
 export default {
   components: {
@@ -85,39 +87,42 @@ export default {
         _this.$refs.my_vid.volume = 0
         _this.$refs.my_vid.play()
 
-        this.ion = new ION(this.$route.params.seed, this.addr, this.myTag)
-        this.ion.connect({})
-        this.ion.events.on('peer-added', () => {
-          _this.ion.peer.on('connect', () => {
-            console.log('on connect!');
-            _this.connected = true
-            _this.ion.peer.on('data', function(data) {
-              var signalCmd = "signal:"
-              var msgCmd = "msg:"
-              if (data.indexOf(signalCmd) === 0) {
-                _this.ion.peer.signal((data + "").substring(signalCmd.length, data.length))
-              } else if (data.indexOf(msgCmd) === 0) {
-                var message = (data + "").substring(msgCmd.length, data.length)
-                _this.messages.push({
-                  message
-                })
-
-                new Noty({
-                  text: htmlEntities(message),
-                  timeout: 2500,
-                  progressBar: true,
-                  layout: 'bottomCenter'
-                }).show()
-              }
-            })
-            _this.ion.peer.on('signal', (data) => {
-              _this.ion.peer.send("signal:" + JSON.stringify(data))
-            })
-            _this.ion.peer.addStream(stream)
+        _this.ion = new ION("zBicVg82Sgf45M6E", this.$route.params.seed, this.myTag)
+        _this.ion.connect({})
+        _this.ion.events.on('connect', () => {
+          console.log('connected!');
+          _this.connected = true
+          _this.peer = new Peer({ initiator: _this.ion.isInitiator, trickle: true })
+          _this.peer.on('signal', (data) => {
+            _this.ion.send("signal:" + JSON.stringify(data))
           })
-          _this.ion.peer.on('stream', (stream) => {
-            _this.$refs.chat_vid.srcObject = stream
-            _this.$refs.chat_vid.play()
+          _this.peer.on('connect', () => {
+            _this.peer.addStream(stream)
+            _this.peer.on('stream', (stream) => {
+              _this.$refs.chat_vid.srcObject = stream
+              _this.$refs.chat_vid.play()
+            })
+          })
+          _this.ion.events.on('data', (data) => {
+            data = data + ""
+            console.log('data', data);
+            var signalCmd = "signal:"
+            var msgCmd = "msg:"
+            if (data.indexOf(signalCmd) === 0) {
+              _this.peer.signal((data + "").substring(signalCmd.length, data.length))
+            } else if (data.indexOf(msgCmd) === 0) {
+              var message = (data + "").substring(msgCmd.length, data.length)
+              _this.messages.push({
+                message
+              })
+
+              new Noty({
+                text: htmlEntities(message),
+                timeout: 2500,
+                progressBar: true,
+                layout: 'bottomCenter'
+              }).show()
+            }
           })
         })
       }, function() {})
