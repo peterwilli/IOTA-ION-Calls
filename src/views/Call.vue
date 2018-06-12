@@ -66,7 +66,7 @@ export default {
   },
   methods: {
     say() {
-      if(this.ion.peer) {
+      if (this.ion.peer) {
         this.ion.peer.send("msg:" + this.message)
         this.messages.push({
           message: this.message
@@ -90,22 +90,15 @@ export default {
         _this.ion = new ION("zBicVg82Sgf45M6E", this.$route.params.seed, this.myTag)
         _this.ion.connect({})
         _this.ion.events.on('connect', () => {
-          console.log('connected!');
+          console.log('Connected! Moving to layer-2 (video chat via ION)');
           _this.connected = true
-          _this.peer = new Peer({ initiator: _this.ion.isInitiator, trickle: true })
-          _this.peer.on('signal', (data) => {
-            _this.ion.send("signal:" + JSON.stringify(data))
-          })
-          _this.peer.on('connect', () => {
-            _this.peer.addStream(stream)
-            _this.peer.on('stream', (stream) => {
-              _this.$refs.chat_vid.srcObject = stream
-              _this.$refs.chat_vid.play()
-            })
+          _this.peer = new Peer({
+            initiator: _this.ion.isInitiator,
+            trickle: true
           })
           _this.ion.events.on('data', (data) => {
             data = data + ""
-            console.log('data', data);
+            console.log('[layer2] data:', data);
             var signalCmd = "signal:"
             var msgCmd = "msg:"
             if (data.indexOf(signalCmd) === 0) {
@@ -124,6 +117,19 @@ export default {
               }).show()
             }
           })
+          _this.peer.on('signal', (data) => {
+            console.log('[layer2] signal:', data);
+            _this.ion.send("signal:" + JSON.stringify(data))
+          })
+          _this.peer.on('connect', () => {
+            _this.peer.addStream(stream)
+            _this.peer.on('stream', (stream) => {
+              _this.$refs.chat_vid.srcObject = stream
+              _this.$refs.chat_vid.play()
+            })
+          })
+          _this.ion.flushCachedData();
+          _this.ion.startRetrieving = true;
         })
       }, function() {})
 
