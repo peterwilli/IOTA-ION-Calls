@@ -22,6 +22,8 @@ export default new Router({
       path: '/call/:seed/:myTag',
       name: 'call-tag',
       component: Call
-    }
+    },
+    // catch-all
+    { path: '*', redirect: '/' }
   ]
 })

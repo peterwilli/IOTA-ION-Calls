@@ -21,9 +21,9 @@
 </template>
 
 <script>
+import IOTA from 'iota.lib.js'
 import Noty from 'noty'
 import ION from 'iota-ion.lib.js'
-console.log(ION);
 import tryteGen from '@/utils/tryteGen.js'
 import htmlEntities from '@/utils/html-entities.js'
 import iota from '@/utils/iota.js'
@@ -38,18 +38,15 @@ export default {
   mounted() {
     var seed = this.$route.params.seed
     var iotaSeed = tryteGen(seed)
-    var addr = iota.utils.addChecksum(iotaSeed)
-    this.addr = addr
     if (this.$route.params.myTag) {
       this.myTag = this.$route.params.myTag
       this.connect()
     } else {
-      var myTag = tryteGen(nanoid(128), 27)
       this.$router.replace({
         name: 'call-tag',
         params: {
           seed,
-          myTag
+          myTag: ION.utils.randomTag()
         }
       })
     }
@@ -58,7 +55,6 @@ export default {
     return {
       messages: [],
       ion: null,
-      addr: null,
       myTag: null,
       message: "",
       connected: false
@@ -79,6 +75,9 @@ export default {
     },
     connect() {
       var _this = this
+      var iota = new IOTA({
+        provider: 'https://nodes.testnet.iota.org:443/'
+      })
       navigator.getUserMedia({
         video: true,
         audio: true
@@ -87,7 +86,7 @@ export default {
         _this.$refs.my_vid.volume = 0
         _this.$refs.my_vid.play()
 
-        _this.ion = new ION("zBicVg82Sgf45M6E", this.$route.params.seed, this.myTag)
+        _this.ion = new ION(iota, "zBicVg82Sgf45M6E", this.$route.params.seed, this.myTag)
         _this.ion.connect({})
         _this.ion.events.on('connect', () => {
           console.log('Connected! Moving to layer-2 (video chat via ION)');

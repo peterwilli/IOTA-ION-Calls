@@ -35,10 +35,11 @@ export default {
   .inner {
     background #fff
     padding 15px
-    display inline-block
+    margin 0 auto
     margin-top 200px
     width 50%
     max-width 400px
+    min-width 200px
 
     input {
       width 100%
