@@ -908,11 +908,11 @@ textarea::-ms-input-placeholder{
 /*
 Nav Menu style
 ==================*/
-
-.navbar-brand {
-    padding: 15px 15px;
+@media (min-width: 1024px)  {
+  .navbar-brand {
+      padding: 15px 15px;
+  }
 }
-
 
 /*
 Home Section style
