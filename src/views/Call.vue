@@ -14,9 +14,10 @@
       </div>
     </div>
     <div class="chat">
-      <input type="text" :disabled="!connected" @keyup.enter="say()" :placeholder="connected ? 'Type a message...' : 'Waiting for others to appear...'" v-model="message" />
+      <input type="text" :disabled="status !== 'connected'" @keyup.enter="say()" :placeholder="status === 'connected' ? 'Type a message...' : 'Waiting for others to appear...'" v-model="message" />
     </div>
-    <share-window :url="getConnectionUrl()" v-if="!connected"></share-window>
+    <share-window :url="getConnectionUrl()" v-if="status === 'idle'"></share-window>
+    <connect-window  v-if="status === 'connecting'"></connect-window>
   </div>
 </template>
 
@@ -28,12 +29,14 @@ import tryteGen from '@/utils/tryteGen.js'
 import htmlEntities from '@/utils/html-entities.js'
 import iota from '@/utils/iota.js'
 import ShareWindow from '@/components/ShareWindow.vue'
+import ConnectWindow from '@/components/ConnectWindow.vue'
 const nanoid = require('nanoid')
 const Peer = require('simple-peer')
 
 export default {
   components: {
-    ShareWindow
+    ShareWindow,
+    ConnectWindow
   },
   mounted() {
     var seed = this.$route.params.seed
@@ -56,8 +59,8 @@ export default {
       messages: [],
       ion: null,
       myTag: null,
-      message: "",
-      connected: false
+      message: '',
+      status: 'idle'
     }
   },
   methods: {
@@ -88,9 +91,12 @@ export default {
 
         _this.ion = new ION(iota, "zBicVg82Sgf45M6E", this.$route.params.seed, this.myTag)
         _this.ion.connect({})
+        _this.ion.events.on('connecting', () => {
+          _this.status = 'connecting'
+        })
         _this.ion.events.on('connect', () => {
           console.log('Connected! Moving to layer-2 (video chat via ION)');
-          _this.connected = true
+          _this.status = 'connected'
           _this.peer = new Peer({
             initiator: _this.ion.isInitiator,
             trickle: true
