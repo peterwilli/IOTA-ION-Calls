@@ -5,7 +5,7 @@
       <p>
         People will be able to call you with this link while you keep this tab open.
       </p>
-      <b>Beta notice:</b> Only works with 1 to 1 conversations at the moment.
+      <b>Beta notice:</b> Only works with 1 to 1 conversations at the moment. Tested on Chrome on desktop and Android, with iOS only Safari has WebRTC, but we weren't able to get it to work with ION at the moment.
       <br /><br />
       <input type="text" readonly :value="url" @click="onUrlClick()" />
     </div>
