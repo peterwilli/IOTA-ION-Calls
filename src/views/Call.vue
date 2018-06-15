@@ -38,7 +38,15 @@ export default {
     ShareWindow,
     ConnectWindow
   },
+  beforeDestroy() {
+    if (this.ion !== null) {
+      console.warn(`Destroyed ION`);
+      this.ion.stop()
+      this.ion = null
+    }
+  },
   mounted() {
+    console.log(`Call using ION ${ION.version}`);
     var seed = this.$route.params.seed
     var iotaSeed = tryteGen(seed)
     if (this.$route.params.myTag) {
@@ -99,7 +107,26 @@ export default {
           _this.status = 'connected'
           _this.peer = new Peer({
             initiator: _this.ion.isInitiator,
-            trickle: true
+            trickle: true,
+            config: {
+              iceServers: [{
+                urls: 'stun:stun.iptel.org:3478'
+              }, {
+                urls: 'stun:stun.ipfire.org:3478'
+              }, {
+                urls: 'stun:stun.phone.com:3478'
+              }, {
+                urls: 'stun:stun.xs4all.nl:3478'
+              }, {
+                urls: 'stun:stun1.l.google.com:19302'
+              }, {
+                urls: 'stun:stun2.l.google.com:19302'
+              }, {
+                urls: 'stun:stun3.l.google.com:19302'
+              }, {
+                urls: 'stun:stun.vodafone.ro:3478'
+              }]
+            }
           })
           _this.ion.events.on('data', (data) => {
             data = data + ""
