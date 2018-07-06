@@ -27,7 +27,7 @@ import Noty from 'noty'
 import ION from 'iota-ion.lib.js'
 import tryteGen from '@/utils/tryteGen.js'
 import htmlEntities from '@/utils/html-entities.js'
-import iota from '@/utils/iota.js'
+import getUserMedia from '@/utils/getUserMedia.js'
 import ShareWindow from '@/components/ShareWindow.vue'
 import ConnectWindow from '@/components/ConnectWindow.vue'
 const nanoid = require('nanoid')
@@ -84,94 +84,92 @@ export default {
     getConnectionUrl() {
       return window.location.origin + "/#/call/" + this.$route.params.seed
     },
-    connect() {
+    async connect() {
       var _this = this
       var iota = new IOTA({
         provider: 'https://nodes.testnet.iota.org:443/'
       })
-      navigator.getUserMedia({
+      var stream = await getUserMedia({
         video: true,
         audio: true
-      }, (stream) => {
-        _this.$refs.my_vid.srcObject = stream
-        _this.$refs.my_vid.volume = 0
-        _this.$refs.my_vid.play()
+      })
+      _this.$refs.my_vid.srcObject = stream
+      _this.$refs.my_vid.volume = 0
+      _this.$refs.my_vid.play()
 
-        _this.ion = new ION(iota, "zBicVg82Sgf45M6E", this.$route.params.seed, this.myTag)
-        _this.ion.connect({})
-        _this.ion.events.on('connecting', () => {
-          _this.status = 'connecting'
+      _this.ion = new ION(iota, "zBicVg82Sgf45M6E", this.$route.params.seed, this.myTag)
+      _this.ion.connect({})
+      _this.ion.events.on('connecting', () => {
+        _this.status = 'connecting'
+      })
+      _this.ion.events.on('connect', () => {
+        console.log('Connected! Moving to layer-2 (video chat via ION)');
+        _this.status = 'connected'
+        _this.peer = new Peer({
+          initiator: _this.ion.isInitiator,
+          trickle: true,
+          config: {
+            iceServers: [{
+              urls: 'stun:stun.iptel.org:3478'
+            }, {
+              urls: 'stun:stun.ipfire.org:3478'
+            }, {
+              urls: 'stun:stun.phone.com:3478'
+            }, {
+              urls: 'stun:stun.xs4all.nl:3478'
+            }, {
+              urls: 'stun:stun1.l.google.com:19302'
+            }, {
+              urls: 'stun:stun2.l.google.com:19302'
+            }, {
+              urls: 'stun:stun3.l.google.com:19302'
+            }, {
+              urls: 'stun:stun.vodafone.ro:3478'
+            }]
+          }
         })
-        _this.ion.events.on('connect', () => {
-          console.log('Connected! Moving to layer-2 (video chat via ION)');
-          _this.status = 'connected'
-          _this.peer = new Peer({
-            initiator: _this.ion.isInitiator,
-            trickle: true,
-            config: {
-              iceServers: [{
-                urls: 'stun:stun.iptel.org:3478'
-              }, {
-                urls: 'stun:stun.ipfire.org:3478'
-              }, {
-                urls: 'stun:stun.phone.com:3478'
-              }, {
-                urls: 'stun:stun.xs4all.nl:3478'
-              }, {
-                urls: 'stun:stun1.l.google.com:19302'
-              }, {
-                urls: 'stun:stun2.l.google.com:19302'
-              }, {
-                urls: 'stun:stun3.l.google.com:19302'
-              }, {
-                urls: 'stun:stun.vodafone.ro:3478'
-              }]
-            }
-          })
-          _this.ion.events.on('data', (data) => {
-            data = data + ""
-            console.log('[layer2] data:', data);
-            var signalCmd = "signal:"
-            var msgCmd = "msg:"
-            if (data.indexOf(signalCmd) === 0) {
-              _this.peer.signal((data + "").substring(signalCmd.length, data.length))
-            } else if (data.indexOf(msgCmd) === 0) {
-              var message = (data + "").substring(msgCmd.length, data.length)
-              _this.messages.push({
-                message
-              })
-
-              new Noty({
-                text: htmlEntities(message),
-                timeout: 2500,
-                progressBar: true,
-                layout: 'bottomCenter'
-              }).show()
-            }
-          })
-          _this.peer.on('signal', (data) => {
-            console.log('[layer2] signal:', data);
-            _this.ion.send("signal:" + JSON.stringify(data))
-          })
-          _this.peer.on('connect', () => {
-            _this.peer.addStream(stream)
-            _this.peer.on('stream', (stream) => {
-              _this.$refs.chat_vid.srcObject = stream
-              _this.$refs.chat_vid.play()
+        _this.ion.events.on('data', (data) => {
+          data = data + ""
+          console.log('[layer2] data:', data);
+          var signalCmd = "signal:"
+          var msgCmd = "msg:"
+          if (data.indexOf(signalCmd) === 0) {
+            _this.peer.signal((data + "").substring(signalCmd.length, data.length))
+          } else if (data.indexOf(msgCmd) === 0) {
+            var message = (data + "").substring(msgCmd.length, data.length)
+            _this.messages.push({
+              message
             })
-          })
-          _this.ion.flushCachedData();
-          _this.ion.startRetrieving = true;
-        })
-      }, function() {})
 
+            new Noty({
+              text: htmlEntities(message),
+              timeout: 2500,
+              progressBar: true,
+              layout: 'bottomCenter'
+            }).show()
+          }
+        })
+        _this.peer.on('signal', (data) => {
+          console.log('[layer2] signal:', data);
+          _this.ion.send("signal:" + JSON.stringify(data))
+        })
+        _this.peer.on('connect', () => {
+          _this.peer.addStream(stream)
+          _this.peer.on('stream', (stream) => {
+            _this.$refs.chat_vid.srcObject = stream
+            _this.$refs.chat_vid.play()
+          })
+        })
+        _this.ion.flushCachedData();
+        _this.ion.startRetrieving = true;
+      })
     }
   }
 }
 </script>
 
 <style lang="stylus" scoped>
-.full-view {
+/* .full-view {
   position fixed
   left 0
   right 0
@@ -252,5 +250,5 @@ export default {
       object-fit cover!important
     }
   }
-}
+} */
 </style>

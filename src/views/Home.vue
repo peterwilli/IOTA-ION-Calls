@@ -132,12 +132,16 @@
                   </div>
               </div>
           </footer>
+          <!-- scroll up-->
+          <div class="scrollup">
+            <a href="#"><i class="fa fa-chevron-up"></i></a>
+          </div>
+          <!-- End off scroll up -->
   </div>
 </template>
 
 <script>
 import tryteGen from '@/utils/tryteGen.js'
-import iota from '@/utils/iota.js'
 const nanoid = require('nanoid')
 
 export default {

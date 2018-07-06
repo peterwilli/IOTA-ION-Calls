@@ -12,16 +12,9 @@
     </div>
   </div>
   <!--End off Preloader -->
-
-
   <div class="culmn">
     <!--Home page style-->
-    <router-view :key="$route.fullPath"></router-view>
-    <!-- scroll up-->
-    <div class="scrollup">
-      <a href="#"><i class="fa fa-chevron-up"></i></a>
-    </div>
-    <!-- End off scroll up -->
+    <router-view :key="$route.fullPath"></router-view>    
   </div>
 </div>
 </template>
