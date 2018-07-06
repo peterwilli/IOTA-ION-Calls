@@ -3,7 +3,7 @@
     <div class="full-view">
       <div class="videos">
         <video ref="chat_vid" class="chat-vid"></video>
-        <div class="my-vid-container">
+        <div class="my-vid-container" v-show="allowStream">
           <video ref="my_vid" class="my-vid"></video>
         </div>
       </div>
@@ -16,8 +16,8 @@
     <div class="chat">
       <input type="text" :disabled="status !== 'connected'" @keyup.enter="say()" :placeholder="status === 'connected' ? 'Type a message...' : 'Waiting for others to appear...'" v-model="message" />
     </div>
-    <share-window :url="getConnectionUrl()" v-if="status === 'idle'"></share-window>
-    <connect-window  v-if="status === 'connecting'"></connect-window>
+    <share-window v-if="status === 'idle'" :url="getConnectionUrl()"></share-window>
+    <status-window v-else :status="status" :error="error"></status-window>
   </div>
 </template>
 
@@ -29,14 +29,14 @@ import tryteGen from '@/utils/tryteGen.js'
 import htmlEntities from '@/utils/html-entities.js'
 import getUserMedia from '@/utils/getUserMedia.js'
 import ShareWindow from '@/components/ShareWindow.vue'
-import ConnectWindow from '@/components/ConnectWindow.vue'
+import StatusWindow from '@/components/StatusWindow.vue'
 const nanoid = require('nanoid')
 const Peer = require('simple-peer')
 
 export default {
   components: {
     ShareWindow,
-    ConnectWindow
+    StatusWindow
   },
   beforeDestroy() {
     if (this.ion !== null) {
@@ -46,11 +46,11 @@ export default {
     }
   },
   mounted() {
-    console.log(`Call using ION ${ION.version}`);
     var seed = this.$route.params.seed
     var iotaSeed = tryteGen(seed)
     if (this.$route.params.myTag) {
       this.myTag = this.$route.params.myTag
+      console.log(`Call using ION ${ION.version}`);
       this.connect()
     } else {
       this.$router.replace({
@@ -68,7 +68,9 @@ export default {
       ion: null,
       myTag: null,
       message: '',
-      status: 'idle'
+      status: 'idle',
+      allowStream: false,
+      error: null
     }
   },
   methods: {
@@ -89,18 +91,14 @@ export default {
       var iota = new IOTA({
         provider: 'https://nodes.testnet.iota.org:443/'
       })
-      var stream = await getUserMedia({
-        video: true,
-        audio: true
-      })
-      _this.$refs.my_vid.srcObject = stream
-      _this.$refs.my_vid.volume = 0
-      _this.$refs.my_vid.play()
-
       _this.ion = new ION(iota, "zBicVg82Sgf45M6E", this.$route.params.seed, this.myTag)
       _this.ion.connect({})
       _this.ion.events.on('connecting', () => {
         _this.status = 'connecting'
+      })
+      _this.ion.events.on('error', (e) => {
+        _this.status = 'error'
+        _this.error = e
       })
       _this.ion.events.on('connect', () => {
         console.log('Connected! Moving to layer-2 (video chat via ION)');
@@ -153,12 +151,20 @@ export default {
           console.log('[layer2] signal:', data);
           _this.ion.send("signal:" + JSON.stringify(data))
         })
-        _this.peer.on('connect', () => {
-          _this.peer.addStream(stream)
+        _this.peer.on('connect', async () => {
           _this.peer.on('stream', (stream) => {
             _this.$refs.chat_vid.srcObject = stream
             _this.$refs.chat_vid.play()
           })
+          var stream = await getUserMedia({
+            video: true,
+            audio: true
+          })
+          _this.allowStream = true
+          _this.$refs.my_vid.srcObject = stream
+          _this.$refs.my_vid.volume = 0
+          _this.$refs.my_vid.play()
+          _this.peer.addStream(stream)
         })
         _this.ion.flushCachedData();
         _this.ion.startRetrieving = true;
@@ -169,7 +175,7 @@ export default {
 </script>
 
 <style lang="stylus" scoped>
-/* .full-view {
+.full-view {
   position fixed
   left 0
   right 0
@@ -250,5 +256,5 @@ export default {
       object-fit cover!important
     }
   }
-} */
+}
 </style>

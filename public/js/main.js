@@ -1,12 +1,6 @@
 "use strict";
 jQuery(document).ready(function ($) {
 
-//for Preloader
-
-    $(window).load(function () {
-        $("#loading").fadeOut(500);
-    });
-
 
     /*---------------------------------------------*
      * Mobile menu
@@ -26,84 +20,5 @@ jQuery(document).ready(function ($) {
             }
         }
     });
-
-
-
-    /*---------------------------------------------*
-     * WOW
-     ---------------------------------------------*/
-
-    var wow = new WOW({
-        mobile: false // trigger animations on mobile devices (default is true)
-    });
-    wow.init();
-
-// magnificPopup
-
-    $('.popup-img').magnificPopup({
-        type: 'image',
-        gallery: {
-            enabled: true
-        }
-    });
-
-    $('.video-link').magnificPopup({
-        type: 'iframe'
-    });
-
-
-
-
-//    featured slider
-    var swiper = new Swiper('.swiper-container', {
-//        pagination: '.swiper-pagination',
-        loop: true,
-        slidesPerView: 'auto',
-        effect: 'coverflow',
-        grabCursor: true,
-        centeredSlides: true,
-        nextButton: '.swiper-button-next',
-        prevButton: '.swiper-button-prev',
-        spaceBetween: 30,
-        coverflow: {
-            rotate: 5,
-            stretch: 0,
-            depth: 100,
-            modifier: 3,
-            slideShadows: false
-        }
-    });
-
-
-
-//---------------------------------------------
-// Scroll Up
-//---------------------------------------------
-
-    $(window).scroll(function () {
-        if ($(this).scrollTop() > 600) {
-            $('.scrollup').fadeIn('slow');
-        } else {
-            $('.scrollup').fadeOut('slow');
-        }
-    });
-    $('.scrollup').click(function () {
-        $("html, body").animate({scrollTop: 0}, 1000);
-        return false;
-    });
-
-
-
-    //End
-
-});
-
-
-// scrool Down
-
-$('.scrooldown a').bind('click', function () {
-    $('html , body').stop().animate({
-        scrollTop: $($(this).attr('href')).offset().top - 160
-    }, 1500, 'easeInOutExpo');
-    event.preventDefault();
+    
 });
