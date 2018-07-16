@@ -5,7 +5,7 @@
         <div class="my-vid-container">
           <video ref="my_vid" class="vid"></video>
         </div>
-        <div class="others-vid-container" v-for="key in Object.keys(connections).filter((c) => typeof c.stream !== 'undefined')">
+        <div class="others-vid-container" v-for="val, key in connections">
           <video class="vid" :ref="'vid:' + key"></video>
         </div>
       </div>
@@ -48,6 +48,12 @@ export default {
     }
   },
   async mounted() {
+    /*
+    TODO:
+      - make sure close deletes video and destroys local peer object-fit
+      - proper animations (loading screens etc)
+      - full-screen vid for second or talking person
+    */
     var seed = this.$route.params.seed
     var iotaSeed = tryteGen(seed)
     if (this.$route.params.myTag) {
@@ -79,7 +85,7 @@ export default {
       myTag: null,
       message: '',
       error: null,
-      connections: [],
+      connections: {},
       myStream: null
     }
   },
@@ -134,14 +140,17 @@ export default {
         })
         var otherPeer = _this.connections[obj.user].peer
         otherPeer.on('signal', (data) => {
+          console.log(`signal to ${obj.user}:`, JSON.stringify(data));
           _this.ion.send(obj.user, "signal:" + JSON.stringify(data))
         })
         otherPeer.on('connect', async () => {
           otherPeer.on('stream', (stream) => {
-            _this.$refs[`vid:${obj.user}`].srcObject = stream
-            _this.$refs[`vid:${obj.user}`].volume = 0
-            _this.$refs[`vid:${obj.user}`].play()
+            var k = `vid:${obj.user}`
+            _this.$refs[k][0].srcObject = stream
+            _this.$refs[k][0].play()
           })
+
+          otherPeer.addStream(_this.myStream)
         })
       })
 
