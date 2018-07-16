@@ -2,9 +2,11 @@
   <div>
     <div class="full-view">
       <div class="videos">
-        <video ref="chat_vid" class="chat-vid"></video>
-        <div class="my-vid-container" v-show="allowStream">
-          <video ref="my_vid" class="my-vid"></video>
+        <div class="my-vid-container">
+          <video ref="my_vid" class="vid"></video>
+        </div>
+        <div class="others-vid-container" v-for="key in Object.keys(connections).filter((c) => typeof c.stream !== 'undefined')">
+          <video class="vid" :ref="'vid:' + key"></video>
         </div>
       </div>
     </div>
@@ -14,10 +16,10 @@
       </div>
     </div>
     <div class="chat">
-      <input type="text" :disabled="status !== 'connected'" @keyup.enter="say()" :placeholder="status === 'connected' ? 'Type a message...' : 'Waiting for others to appear...'" v-model="message" />
+      <input type="text" :disabled="Object.keys(connections).length > 0" @keyup.enter="say()" :placeholder="Object.keys(connections).length > 0 ? 'Type a message...' : 'Waiting for others to appear...'" v-model="message" />
     </div>
-    <share-window v-if="status === 'idle'" :url="getConnectionUrl()"></share-window>
-    <status-window v-else :status="status" :error="error"></status-window>
+    <share-window :url="getConnectionUrl()"></share-window>
+    <!-- <status-window v-else :status="status" :error="error"></status-window> -->
   </div>
 </template>
 
@@ -45,12 +47,20 @@ export default {
       this.ion = null
     }
   },
-  mounted() {
+  async mounted() {
     var seed = this.$route.params.seed
     var iotaSeed = tryteGen(seed)
     if (this.$route.params.myTag) {
       this.myTag = this.$route.params.myTag
       console.log(`Call using ION ${ION.version}`);
+
+      this.myStream = await getUserMedia({
+        video: true,
+        audio: true
+      })
+      this.$refs.my_vid.srcObject = this.myStream
+      this.$refs.my_vid.volume = 0
+      this.$refs.my_vid.play()
       this.connect()
     } else {
       this.$router.replace({
@@ -68,9 +78,9 @@ export default {
       ion: null,
       myTag: null,
       message: '',
-      status: 'idle',
-      allowStream: false,
-      error: null
+      error: null,
+      connections: [],
+      myStream: null
     }
   },
   methods: {
@@ -91,83 +101,70 @@ export default {
       var iota = new IOTA({
         provider: 'https://nodes.testnet.iota.org:443/'
       })
-      _this.ion = new ION(iota, "zBicVg82Sgf45M6E", this.$route.params.seed, this.myTag)
+      _this.ion = new ION(iota, "81kozKvUQEU7civb", this.$route.params.seed, this.myTag)
       _this.ion.connect({})
-      _this.ion.events.on('connecting', () => {
+      _this.ion.on('connecting', () => {
         _this.status = 'connecting'
       })
-      _this.ion.events.on('error', (e) => {
+      _this.ion.on('error', (e) => {
         _this.status = 'error'
         _this.error = e
       })
-      _this.ion.events.on('connect', () => {
-        console.log('Connected! Moving to layer-2 (video chat via ION)');
-        _this.status = 'connected'
-        _this.peer = new Peer({
-          initiator: _this.ion.isInitiator,
+
+      _this.ion.on('connect', (obj) => {
+        console.log('Connected! Upgrading connection to video chat, initiator:', _this.ion.peers[obj.user].initiator);
+        var peer = new Peer({
+          initiator: _this.ion.peers[obj.user].initiator,
           trickle: true,
           config: {
             iceServers: [{
-              urls: 'stun:stun.iptel.org:3478'
-            }, {
-              urls: 'stun:stun.ipfire.org:3478'
-            }, {
-              urls: 'stun:stun.phone.com:3478'
-            }, {
               urls: 'stun:stun.xs4all.nl:3478'
             }, {
               urls: 'stun:stun1.l.google.com:19302'
             }, {
               urls: 'stun:stun2.l.google.com:19302'
             }, {
-              urls: 'stun:stun3.l.google.com:19302'
-            }, {
               urls: 'stun:stun.vodafone.ro:3478'
             }]
           }
         })
-        _this.ion.events.on('data', (data) => {
-          data = data + ""
-          console.log('[layer2] data:', data);
-          var signalCmd = "signal:"
-          var msgCmd = "msg:"
-          if (data.indexOf(signalCmd) === 0) {
-            _this.peer.signal((data + "").substring(signalCmd.length, data.length))
-          } else if (data.indexOf(msgCmd) === 0) {
-            var message = (data + "").substring(msgCmd.length, data.length)
-            _this.messages.push({
-              message
-            })
+        _this.$set(_this.connections, obj.user, {
+          peer,
+          status: 'idle'
+        })
+        var otherPeer = _this.connections[obj.user].peer
+        otherPeer.on('signal', (data) => {
+          _this.ion.send(obj.user, "signal:" + JSON.stringify(data))
+        })
+        otherPeer.on('connect', async () => {
+          otherPeer.on('stream', (stream) => {
+            _this.$refs[`vid:${obj.user}`].srcObject = stream
+            _this.$refs[`vid:${obj.user}`].volume = 0
+            _this.$refs[`vid:${obj.user}`].play()
+          })
+        })
+      })
 
-            new Noty({
-              text: htmlEntities(message),
-              timeout: 2500,
-              progressBar: true,
-              layout: 'bottomCenter'
-            }).show()
-          }
-        })
-        _this.peer.on('signal', (data) => {
-          console.log('[layer2] signal:', data);
-          _this.ion.send("signal:" + JSON.stringify(data))
-        })
-        _this.peer.on('connect', async () => {
-          _this.peer.on('stream', (stream) => {
-            _this.$refs.chat_vid.srcObject = stream
-            _this.$refs.chat_vid.play()
+      _this.ion.on('data', (obj_) => {
+        const { data, user } = obj_
+        var otherPeer = _this.connections[user].peer
+        var signalCmd = "signal:"
+        var msgCmd = "msg:"
+        if (data.indexOf(signalCmd) === 0) {
+          otherPeer.signal(data.substring(signalCmd.length, data.length))
+        } else if (data.indexOf(msgCmd) === 0) {
+          var message = (data + "").substring(msgCmd.length, data.length)
+          _this.messages.push({
+            message
           })
-          var stream = await getUserMedia({
-            video: true,
-            audio: true
-          })
-          _this.allowStream = true
-          _this.$refs.my_vid.srcObject = stream
-          _this.$refs.my_vid.volume = 0
-          _this.$refs.my_vid.play()
-          _this.peer.addStream(stream)
-        })
-        _this.ion.flushCachedData();
-        _this.ion.startRetrieving = true;
+
+          new Noty({
+            text: htmlEntities(message),
+            timeout: 2500,
+            progressBar: true,
+            layout: 'bottomCenter'
+          }).show()
+        }
       })
     }
   }
@@ -243,6 +240,19 @@ export default {
     position absolute
     // width: 15%
     height 15%
+    right 15px
+    top 10px
+    min-height 150px
+    // min-width 150px
+    object-fit cover!important
+    border 4px solid #fff
+    overflow hidden
+  }
+
+  .others-vid-container {
+    position absolute
+    // width: 15%
+    height 15%
     left 15px
     bottom 65px
     min-height 150px
@@ -250,8 +260,10 @@ export default {
     object-fit cover!important
     border 4px solid #fff
     overflow hidden
+  }
 
-    .my-vid {
+  .my-vid-container, .others-vid-container {
+    .vid {
       height 100%
       object-fit cover!important
     }
