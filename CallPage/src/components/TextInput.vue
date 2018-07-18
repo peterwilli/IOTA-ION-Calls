@@ -25,7 +25,7 @@ export default {
   padding-top 25px
   padding-bottom 25px
   position relative
-  transition box-shadow 0.5s
+  transition box-shadow 0.5s, border 0.5s
 
   .wrapper {
     left 15px
@@ -36,6 +36,7 @@ export default {
   }
 
   &:focus-within {
+    border 2px solid rgba(104, 220, 255, 0.8)
     box-shadow 0px 0px 100px 0px rgba(0, 0, 0, 0.3)
   }
 

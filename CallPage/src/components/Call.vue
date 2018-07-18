@@ -6,12 +6,12 @@
           <video ref="my_vid"></video>
         </user-video>
         <div class="others-vid-container" v-for="val, key in connections">
-          <div v-if="val.status !== 'connected'" class="vid-status">
-            <atom-spinner :color="'#90abad'" :size='90'></atom-spinner>
-          </div>
-          <video v-show="val.status === 'connected'" class="vid" :ref="'vid:' + key"></video>
+          <user-video name="Other" :status="val.status">
+            <video v-show="val.status === 'connected'" :ref="'vid:' + key"></video>
+          </user-video>
         </div>
       </div>
+      <share-window v-if="Object.keys(connections).length === 0" :url="getConnectionUrl()"></share-window>
     </div>
     <div class="messages">
       <div v-for="msg in messages" class="message">
@@ -21,7 +21,6 @@
     <div class="chat">
       <input type="text" :disabled="Object.keys(connections).length > 0" @keyup.enter="say()" :placeholder="Object.keys(connections).length > 0 ? 'Type a message...' : 'Waiting for others to appear...'" v-model="message" />
     </div>
-    <share-window v-if="Object.keys(connections).length === 0" :url="getConnectionUrl()"></share-window>
   </div>
 </template>
 
@@ -35,11 +34,12 @@ import htmlEntities from '@/utils/html-entities.js'
 import getUserMedia from '@/utils/getUserMedia.js'
 import ShareWindow from '@/components/ShareWindow.vue'
 import UserVideo from '@/components/UserVideo.vue'
+const Peer = ION.utils.Peer
 
 export default {
   components: {
-    ShareWindow,
-    UserVideo
+    UserVideo,
+    ShareWindow
   },
   beforeDestroy() {
     if (this.ion !== null) {
@@ -84,7 +84,7 @@ export default {
       }
     },
     getConnectionUrl() {
-      return window.location.origin + "/#/call/" + this.$route.params.seed
+      return window.location.origin + "/#/" + this.$route.params.seed
     },
     async connect() {
       var _this = this
@@ -254,7 +254,9 @@ export default {
   right 0
   bottom 100px
   height 250px
-  text-align: center
+
+  display flex
+  justify-content center
 
   video {
     height 250px
