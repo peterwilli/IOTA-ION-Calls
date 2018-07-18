@@ -6,7 +6,7 @@
     <p>
       Note: This is only stored locally, it won't be stored online anywhere. Only people you will call or people who will call you will be able to see this.
     </p>
-    <text-input v-model="name" placeholder="Enter name here..."></text-input>
+    <text-input :onEnter="ok" v-model="name" placeholder="Enter name here..."></text-input>
     <br />
     <button class="btn-hover color-3" @click="ok()">
       Let's go!

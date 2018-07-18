@@ -1,14 +1,14 @@
 <template lang="html">
   <div class="ion-input">
     <div class="wrapper">
-      <input @input="updateInput" :placeholder="placeholder" :value="value" type="text" />
+      <input ref="inputField" v-on:keyup.enter="onEnter" @input="updateInput" :placeholder="placeholder" :value="value" type="text" />
     </div>
   </div>
 </template>
 
 <script>
 export default {
-  props: ['placeholder', 'value'],
+  props: ['placeholder', 'value', 'onEnter'],
   methods: {
     updateInput(e) {
       this.$emit('input', e.currentTarget.value)

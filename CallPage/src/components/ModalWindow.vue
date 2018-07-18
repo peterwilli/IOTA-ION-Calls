@@ -2,7 +2,7 @@
   <div class="container">
     <div class="contents">
       <slot>
-        
+
       </slot>
     </div>
   </div>
@@ -30,12 +30,12 @@ export default {
     width 50%
     max-width 450px
     min-width 100px
-    min-height 500px
     border-radius 15px
     border 2px solid rgba(104, 220, 255, 0.56)
     background rgba(255,255,255, 0.3)
     box-shadow 0px 0px 100px 0px rgba(0, 0, 0, 0.8)
     color #fff
+    padding 15px
   }
 }
 </style>

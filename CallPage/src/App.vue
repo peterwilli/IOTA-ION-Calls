@@ -6,6 +6,7 @@
 
 <script>
   require("@/style/buttons.styl")
+  require("@/style/tooltip.styl")
 </script>
 
 <style lang="stylus">
