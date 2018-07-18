@@ -6,7 +6,10 @@
           <video ref="my_vid" class="vid"></video>
         </div>
         <div class="others-vid-container" v-for="val, key in connections">
-          <video class="vid" :ref="'vid:' + key"></video>
+          <div v-if="val.status !== 'connected'" class="vid-status">
+            <atom-spinner :color="'#90abad'" :size='90'></atom-spinner>
+          </div>
+          <video v-show="val.status === 'connected'" class="vid" :ref="'vid:' + key"></video>
         </div>
       </div>
     </div>
@@ -32,13 +35,16 @@ import htmlEntities from '@/utils/html-entities.js'
 import getUserMedia from '@/utils/getUserMedia.js'
 import ShareWindow from '@/components/ShareWindow.vue'
 import StatusWindow from '@/components/StatusWindow.vue'
+import { AtomSpinner } from 'epic-spinners'
+
 const nanoid = require('nanoid')
 const Peer = require('simple-peer')
 
 export default {
   components: {
     ShareWindow,
-    StatusWindow
+    StatusWindow,
+    AtomSpinner
   },
   beforeDestroy() {
     if (this.ion !== null) {
@@ -48,12 +54,6 @@ export default {
     }
   },
   async mounted() {
-    /*
-    TODO:
-      - make sure close deletes video and destroys local peer object-fit
-      - proper animations (loading screens etc)
-      - full-screen vid for second or talking person
-    */
     var seed = this.$route.params.seed
     var iotaSeed = tryteGen(seed)
     if (this.$route.params.myTag) {
@@ -78,17 +78,6 @@ export default {
       })
     }
   },
-  data() {
-    return {
-      messages: [],
-      ion: null,
-      myTag: null,
-      message: '',
-      error: null,
-      connections: {},
-      myStream: null
-    }
-  },
   methods: {
     say() {
       if (this.ion.peer) {
@@ -109,17 +98,19 @@ export default {
       })
       _this.ion = new ION(iota, "81kozKvUQEU7civb", this.$route.params.seed, this.myTag)
       _this.ion.connect({})
-      _this.ion.on('connecting', () => {
-        _this.status = 'connecting'
-      })
       _this.ion.on('error', (e) => {
         _this.status = 'error'
         _this.error = e
       })
 
       _this.ion.on('connect', (obj) => {
+        _this.$set(_this.connections, obj.user, {
+          peer,
+          status: 'upgrading'
+        })
         console.log('Connected! Upgrading connection to video chat, initiator:', _this.ion.peers[obj.user].initiator);
         var peer = new Peer({
+          // Upgrade the Peer to video, we use the ION initiator election results to immediatly come up with an initiator.
           initiator: _this.ion.peers[obj.user].initiator,
           trickle: true,
           config: {
@@ -136,22 +127,43 @@ export default {
         })
         _this.$set(_this.connections, obj.user, {
           peer,
-          status: 'idle'
+          status: 'upgrading'
         })
-        var otherPeer = _this.connections[obj.user].peer
-        otherPeer.on('signal', (data) => {
+        peer.on('signal', (data) => {
           console.log(`signal to ${obj.user}:`, JSON.stringify(data));
           _this.ion.send(obj.user, "signal:" + JSON.stringify(data))
         })
-        otherPeer.on('connect', async () => {
-          otherPeer.on('stream', (stream) => {
-            var k = `vid:${obj.user}`
-            _this.$refs[k][0].srcObject = stream
-            _this.$refs[k][0].play()
+        peer.on('connect', async () => {
+          _this.$set(_this.connections, obj.user, {
+            peer,
+            status: 'acquiring_stream'
           })
 
-          otherPeer.addStream(_this.myStream)
+          peer.on('stream', (stream) => {
+            const k = `vid:${obj.user}`
+            _this.$refs[k][0].srcObject = stream
+            _this.$refs[k][0].volume = 1
+            _this.$refs[k][0].play()
+            // TODO: Base this on person currently speaking
+            _this.currentlyTalking = _this.connections[obj.user]
+
+            _this.$set(_this.connections, obj.user, {
+              peer,
+              status: 'connected'
+            })
+          })
+
+          peer.addStream(_this.myStream)
         })
+      })
+
+      _this.ion.on('close', (obj_) => {
+        const { user } = obj_
+        var connections = Object.assign({}, _this.connections)
+        var conn = connections[user]
+        conn.peer.destroy()
+        delete connections[user]
+        _this.connections = connections
       })
 
       _this.ion.on('data', (obj_) => {
@@ -175,6 +187,18 @@ export default {
           }).show()
         }
       })
+    }
+  },
+  data() {
+    return {
+      messages: [],
+      ion: null,
+      myTag: null,
+      message: '',
+      error: null,
+      connections: {},
+      myStream: null,
+      currentlyTalking: null
     }
   }
 }
@@ -235,6 +259,17 @@ export default {
   right 0
   top 0
   bottom 0
+
+  .vid-status {
+    width 180px
+    height 100%
+    background: #d9e9ea
+    padding-top: 30px
+    .atom-spinner {
+      margin 0 auto
+      width 150px
+    }
+  }
 
   .chat-vid {
     position absolute
