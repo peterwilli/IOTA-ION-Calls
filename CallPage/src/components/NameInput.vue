@@ -19,9 +19,11 @@ import TextInput from '@/components/TextInput.vue'
 import store from 'store'
 
 export default {
+  props: ['onFinish'],
   methods: {
     ok() {
-      store.set('user', { name:'Marcus' })
+      store.set('user', { name: this.name })
+      this.onFinish()
     }
   },
   components: {
