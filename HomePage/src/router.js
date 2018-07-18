@@ -13,16 +13,6 @@ export default new Router({
       name: 'home',
       component: Home
     },
-    {
-      path: '/call/:seed',
-      name: 'call',
-      component: Call
-    },
-    {
-      path: '/call/:seed/:myTag',
-      name: 'call-tag',
-      component: Call
-    },
     // catch-all
     { path: '*', redirect: '/' }
   ]
