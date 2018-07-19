@@ -2,24 +2,25 @@
   <div>
     <div class="full-view">
       <div class="videos">
-        <user-video name="You" status="connected">
+        <user-video :on-update="videoUpdated" name="You" status="connected">
           <video ref="my_vid"></video>
         </user-video>
-        <div class="others-vid-container" v-for="val, key in connections">
-          <user-video name="Other" :status="val.status">
-            <video v-show="val.status === 'connected'" :ref="'vid:' + key"></video>
-          </user-video>
-        </div>
+        <user-video :on-update="videoUpdated" v-for="val, key in connections" name="Other" :status="val.status">
+          <video v-show="val.status === 'connected'" :ref="'vid:' + key"></video>
+        </user-video>
       </div>
       <share-window v-if="Object.keys(connections).length === 0" :url="getConnectionUrl()"></share-window>
-    </div>
-    <div class="messages">
-      <div v-for="msg in messages" class="message">
-        {{ msg.message }}
+      <div class="chat">
+        <text-input :onEnter="say" v-model="message" :placeholder="Object.keys(connections).length > 0 ? 'Type a message...' : 'Waiting for others to appear...'" :disabled="Object.keys(connections).length > 0"></text-input>
       </div>
     </div>
-    <div class="chat">
-      <input type="text" :disabled="Object.keys(connections).length > 0" @keyup.enter="say()" :placeholder="Object.keys(connections).length > 0 ? 'Type a message...' : 'Waiting for others to appear...'" v-model="message" />
+    <div class="messages">
+      <div class="inner">
+        <div v-for="msg in messages" class="message">
+          <span class="from">{{ msg.from }}:</span>
+          <span class="content">{{ msg.message }}</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -34,12 +35,14 @@ import htmlEntities from '@/utils/html-entities.js'
 import getUserMedia from '@/utils/getUserMedia.js'
 import ShareWindow from '@/components/ShareWindow.vue'
 import UserVideo from '@/components/UserVideo.vue'
+import TextInput from '@/components/TextInput.vue'
 const Peer = ION.utils.Peer
 
 export default {
   components: {
     UserVideo,
-    ShareWindow
+    ShareWindow,
+    TextInput
   },
   beforeDestroy() {
     if (this.ion !== null) {
@@ -52,6 +55,7 @@ export default {
     var seed = this.$route.params.seed
     var iotaSeed = tryteGen(seed)
     if (this.$route.params.myTag) {
+      this.loadUser()
       this.myTag = this.$route.params.myTag
       console.log(`Call using ION ${ION.version}`);
 
@@ -74,14 +78,21 @@ export default {
     }
   },
   methods: {
+    loadUser() {
+      this.user = store.get('user')
+    },
     say() {
-      if (this.ion.peer) {
-        this.ion.peer.send("msg:" + this.message)
-        this.messages.push({
-          message: this.message
-        })
-        this.message = ""
+      var json = {
+        from: this.user.name,
+        message: this.message
       }
+      var jsonStr = JSON.stringify(json)
+      this.ion.broadcast("msg:" + jsonStr)
+      this.messages.unshift(json)
+      this.message = ""
+    },
+    videoUpdated() {
+      // Nothing, for now
     },
     getConnectionUrl() {
       return window.location.origin + "/#/" + this.$route.params.seed
@@ -169,13 +180,15 @@ export default {
         if (data.indexOf(signalCmd) === 0) {
           otherPeer.signal(data.substring(signalCmd.length, data.length))
         } else if (data.indexOf(msgCmd) === 0) {
-          var message = (data + "").substring(msgCmd.length, data.length)
-          _this.messages.push({
-            message
+          var json = (data + "").substring(msgCmd.length, data.length)
+          json = JSON.parse(json)
+          _this.messages.unshift({
+            message: json.message,
+            from: json.from
           })
 
           new Noty({
-            text: htmlEntities(message),
+            text: htmlEntities(`${json.from}: ${json.message}`),
             timeout: 2500,
             progressBar: true,
             layout: 'bottomCenter'
@@ -193,7 +206,8 @@ export default {
       error: null,
       connections: {},
       myStream: null,
-      currentlyTalking: null
+      currentlyTalking: null,
+      user: null
     }
   }
 }
@@ -212,41 +226,61 @@ export default {
   position absolute
   left 0
   right 0
-  top 0
-  margin-bottom 50px
-  margin-top 100%
-  background #a7e7ff
+  bottom 0
+  z-index 999
+
+  .inner {
+    position absolute
+    left 15px
+    right 15px
+    top 100%
+    border-radius: 25px
+    box-shadow 0px 0px 100px 0px rgba(0, 0, 0, 0.3)
+    margin-bottom 100px
+
+    /*&:after {
+      content: ' '
+      position absolute
+      left 0
+      right 0
+      top 0
+      bottom 0
+      background: #fff
+      opacity 0.5
+      backdrop-filter: blur(10px)
+      -webkit-backdrop-filter: blur(10px)
+    }*/
+  }
   .message {
-    padding 5px
-    border-top 1px dotted  #fff
-    border-bottom 1px dotted #36b0e0
+    border 1px solid rgba(104, 220, 255, 0.3)
+    background rgba(0, 0, 0, 0.4)
+    color #fff
+    padding 15px
+    border-bottom 0
+
+    .from {
+      font-weight bold
+      padding-right 10px
+    }
+  }
+  .message:first-child {
+    border-top-left-radius 25px
+    border-top-right-radius 25px
+  }
+  .message:last-child {
+    border-bottom-left-radius 25px
+    border-bottom-right-radius 25px
+    border-bottom 1px solid rgba(104, 220, 255, 0.56)
   }
 }
 .chat {
-  $chat-inner-color = #a7e7ff
-  background #f1f1f1
   height 50px
   left 0
   right 0
   bottom 0
   position fixed
-  padding 5px
-  box-sizing border-box
-  border-top 3px solid #fff
-  -webkit-box-shadow: 0px -3px 0px 0px $chat-inner-color
-  -moz-box-shadow:    0px -3px 0px 0px $chat-inner-color
-  box-shadow:         0px -3px 0px 0px $chat-inner-color
-
-  input {
-    width 100%
-    height 100%
-    margin 0
-    padding 0
-    font-size 100%
-    background transparent
-    border 0
-    outline none
-  }
+  z-index 100
+  padding 15px
 }
 .videos {
   position absolute
@@ -254,9 +288,17 @@ export default {
   right 0
   bottom 100px
   height 250px
+  z-index 5
 
   display flex
   justify-content center
+
+  .user-video {
+    margin-left 50px
+  }
+  .user-video:first-child {
+    margin-left 0
+  }
 
   video {
     height 250px
@@ -272,12 +314,6 @@ export default {
     width 100%
     height 100%
     object-fit cover!important
-  }
-
-  .my-vid-container, .others-vid-container {
-    .vid {
-
-    }
   }
 }
 </style>

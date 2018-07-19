@@ -1,23 +1,25 @@
 <template lang="html">
-  <div class="user-video" v-tooltip="{
-    content: name,
-    show: true
-  }">
-    <div class="inner">
-      <div v-if="status !== 'connected'" class="vid-status">
-        <atom-spinner :color="'#90abad'" :size='90'></atom-spinner>
-      </div>
-      <div v-show="status === 'connected'">
-        <slot></slot>
+  <transition name="zoom" @after-enter="onUpdate()">
+    <div class="user-video">
+      <div class="tooltip vue-tooltip-theme" role="tooltip" aria-hidden="false" x-placement="top" style="position: absolute; will-change: transform; top: -50px; left: 50%; margin-left:-60px; width: 120px;"><div class="tooltip-arrow" style="left: 50px;"></div><div class="tooltip-inner" style="text-align:center">{{ name }}</div></div>
+      <div class="inner">
+        <div v-if="status !== 'connected'" class="vid-status">
+          <atom-spinner :color="'#90abad'" :size='90'></atom-spinner>
+        </div>
+        <div v-show="status === 'connected'">
+          <slot></slot>
+        </div>
       </div>
     </div>
-  </div>
+  </transition>
 </template>
 
 <script>
-import { AtomSpinner } from 'epic-spinners'
+import {
+  AtomSpinner
+} from 'epic-spinners'
 export default {
-  props: ['name', 'status'],
+  props: ['name', 'status', 'onUpdate'],
   components: {
     AtomSpinner
   }
@@ -25,11 +27,19 @@ export default {
 </script>
 
 <style lang="stylus" scoped>
-.user-video {
-  transition all 0.5s
-  height 100%
+.zoom-enter-active, .zoom-leave-active {
+  transition width .5s
   width 250px
-  margin-left 50px
+  overflow hidden
+}
+
+.zoom-enter {
+  width 0
+}
+
+.user-video {
+  height 100%
+  position relative
 
   .inner {
     border-radius 25px

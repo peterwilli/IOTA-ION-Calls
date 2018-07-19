@@ -7,6 +7,8 @@
 <script>
   require("@/style/buttons.styl")
   require("@/style/tooltip.styl")
+  require("@/style/noty.css")
+  require("@/style/animate.css")
 </script>
 
 <style lang="stylus">
@@ -15,6 +17,7 @@ body {
   font-family verdana
   margin 0
   padding 0
+  background-attachment fixed
 }
 
 body, html {
