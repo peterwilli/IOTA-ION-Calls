@@ -166,12 +166,7 @@ export default {
     },
     newCall() {
       var seed = nanoid(16)
-      this.$router.push({
-        name: 'call',
-        params: {
-          seed
-        }
-      })
+      window.location.href = "/call/#" + seed
     }
   }
 }

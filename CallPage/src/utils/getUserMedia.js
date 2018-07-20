@@ -1,4 +1,4 @@
-module.exports = (constraints) => {
+export default (constraints) => {
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     return navigator.mediaDevices.getUserMedia(constraints)
   }

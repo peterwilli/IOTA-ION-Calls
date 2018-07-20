@@ -1,11 +1,11 @@
 <template lang="html">
-  <div>
+  <div v-if="correctlyLoaded">
     <div class="full-view">
       <div class="videos">
-        <user-video :on-update="videoUpdated" name="You" status="connected">
+        <user-video :on-update="videoUpdated" :name="user.name" status="connected">
           <video ref="my_vid"></video>
         </user-video>
-        <user-video :on-update="videoUpdated" v-for="val, key in connections" name="Other" :status="val.status">
+        <user-video :on-update="videoUpdated" v-for="val, key in connections" :name="val.name" :status="val.status">
           <video v-show="val.status === 'connected'" :ref="'vid:' + key"></video>
         </user-video>
       </div>
@@ -55,18 +55,21 @@ export default {
     var seed = this.$route.params.seed
     var iotaSeed = tryteGen(seed)
     if (this.$route.params.myTag) {
+      this.correctlyLoaded = true
       this.loadUser()
-      this.myTag = this.$route.params.myTag
-      console.log(`Call using ION ${ION.version}`);
+      if(this.user) {
+        this.myTag = this.$route.params.myTag
+        console.log(`Call using ION ${ION.version}`);
 
-      this.myStream = await getUserMedia({
-        video: true,
-        audio: true
-      })
-      this.$refs.my_vid.srcObject = this.myStream
-      this.$refs.my_vid.volume = 0
-      this.$refs.my_vid.play()
-      this.connect()
+        this.myStream = await getUserMedia({
+          video: true,
+          audio: true
+        })
+        this.$refs.my_vid.srcObject = this.myStream
+        this.$refs.my_vid.volume = 0
+        this.$refs.my_vid.play()
+        this.connect()
+      }
     } else {
       this.$router.replace({
         name: 'call-tag',
@@ -95,7 +98,7 @@ export default {
       // Nothing, for now
     },
     getConnectionUrl() {
-      return window.location.origin + "/#/" + this.$route.params.seed
+      return window.location.href.substring(0, window.location.href.indexOf("#")) + "#/" + this.$route.params.seed
     },
     async connect() {
       var _this = this
@@ -110,10 +113,9 @@ export default {
       })
 
       _this.ion.on('connect', (obj) => {
-        _this.$set(_this.connections, obj.user, {
-          peer,
-          status: 'upgrading'
-        })
+        var jsonStr = "intro:" + JSON.stringify({ name: _this.user.name })
+        console.log('sending', jsonStr, 'to', obj.user);
+        _this.ion.send(obj.user, jsonStr)
         console.log('Connected! Upgrading connection to video chat, initiator:', _this.ion.peers[obj.user].initiator);
         var peer = new Peer({
           // Upgrade the Peer to video, we use the ION initiator election results to immediatly come up with an initiator.
@@ -140,10 +142,9 @@ export default {
           _this.ion.send(obj.user, "signal:" + JSON.stringify(data))
         })
         peer.on('connect', async () => {
-          _this.$set(_this.connections, obj.user, {
-            peer,
-            status: 'acquiring_stream'
-          })
+          var newConn = Object.assign({}, _this.connections[obj.user])
+          newConn.status = 'acquiring_stream'
+          _this.connections[obj.user] = newConn
 
           peer.on('stream', (stream) => {
             const k = `vid:${obj.user}`
@@ -153,10 +154,9 @@ export default {
             // TODO: Base this on person currently speaking
             _this.currentlyTalking = _this.connections[obj.user]
 
-            _this.$set(_this.connections, obj.user, {
-              peer,
-              status: 'connected'
-            })
+            var newConn = Object.assign({}, _this.connections[obj.user])
+            newConn.status = 'connected'
+            _this.connections[obj.user] = newConn
           })
 
           peer.addStream(_this.myStream)
@@ -167,7 +167,9 @@ export default {
         const { user } = obj_
         var connections = Object.assign({}, _this.connections)
         var conn = connections[user]
-        conn.peer.destroy()
+        if(conn.peer) {
+          conn.peer.destroy()
+        }
         delete connections[user]
         _this.connections = connections
       })
@@ -177,10 +179,18 @@ export default {
         var otherPeer = _this.connections[user].peer
         var signalCmd = "signal:"
         var msgCmd = "msg:"
+        var introCmd = "intro:"
+
         if (data.indexOf(signalCmd) === 0) {
           otherPeer.signal(data.substring(signalCmd.length, data.length))
+        } else if (data.indexOf(introCmd) === 0) {
+          var json = data.substring(introCmd.length, data.length)
+          json = JSON.parse(json)
+          var newConn = Object.assign({}, _this.connections[user])
+          newConn.name = json.name
+          _this.connections[user] = newConn
         } else if (data.indexOf(msgCmd) === 0) {
-          var json = (data + "").substring(msgCmd.length, data.length)
+          var json = data.substring(msgCmd.length, data.length)
           json = JSON.parse(json)
           _this.messages.unshift({
             message: json.message,
@@ -207,7 +217,8 @@ export default {
       connections: {},
       myStream: null,
       currentlyTalking: null,
-      user: null
+      user: null,
+      correctlyLoaded: false
     }
   }
 }

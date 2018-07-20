@@ -13,7 +13,6 @@
 </template>
 
 <script>
-import ModalWindow from '@/components/ModalWindow.vue'
 import Window from '@/components/Window.vue'
 import TextInput from '@/components/TextInput.vue'
 
