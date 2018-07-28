@@ -8,8 +8,10 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "blakejs": "^1.1.0",
     "epic-spinners": "^1.0.3",
     "iota.lib.js": "^0.4.7",
+    "linkifyjs": "^2.1.6",
     "noty": "^3.2.0-beta",
     "seed-random": "^2.2.0",
     "store": "^2.0.12",

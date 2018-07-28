@@ -23,4 +23,17 @@ body {
 body, html {
   height: 100%
 }
+
+a:link {
+  color #fff
+}
+
+a:visited {
+  color #bdbdbd
+}
+
+a:focus, a:hover, a:active {
+  color #fff
+}
+
 </style>

@@ -18,7 +18,7 @@
       <div class="inner">
         <div v-for="msg in messages" class="message">
           <span class="from">{{ msg.from }}:</span>
-          <span class="content">{{ msg.message }}</span>
+            <span :key="'msg' + blake2sHex(msg.message)" class="content"><linkified-text :text="msg.message"></linkified-text></span>
         </div>
       </div>
     </div>
@@ -36,13 +36,16 @@ import getUserMedia from '@/utils/getUserMedia.js'
 import ShareWindow from '@/components/ShareWindow.vue'
 import UserVideo from '@/components/UserVideo.vue'
 import TextInput from '@/components/TextInput.vue'
+import LinkifiedText from '@/components/LinkifiedText.vue'
+const blake = require('blakejs')
 const Peer = ION.utils.Peer
 
 export default {
   components: {
     UserVideo,
     ShareWindow,
-    TextInput
+    TextInput,
+    LinkifiedText
   },
   beforeDestroy() {
     if (this.ion !== null) {
@@ -81,6 +84,9 @@ export default {
     }
   },
   methods: {
+    blake2sHex(msg) {
+      return blake.blake2sHex(msg)
+    },
     loadUser() {
       this.user = store.get('user')
     },
@@ -198,10 +204,10 @@ export default {
           })
 
           new Noty({
-            text: htmlEntities(`${json.from}: ${json.message}`),
+            text: htmlEntities(`${json.from}: ${json.message}`).replace(/(http:\/\/[^\s]+)/g, "<a href='$1'>$1</a>"),
             timeout: 2500,
             progressBar: true,
-            layout: 'bottomCenter'
+            layout: 'topCenter'
           }).show()
         }
       })
@@ -262,6 +268,11 @@ export default {
       -webkit-backdrop-filter: blur(10px)
     }*/
   }
+
+  a {
+    color: #fff!important
+  }
+
   .message {
     border 1px solid rgba(104, 220, 255, 0.3)
     background rgba(0, 0, 0, 0.4)
