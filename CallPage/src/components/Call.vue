@@ -106,6 +106,12 @@ export default {
     getConnectionUrl() {
       return window.location.href.substring(0, window.location.href.indexOf("#")) + "#/" + this.$route.params.seed
     },
+    onChangeNickname() {
+      this.loadUser()
+      var jsonStr = "intro:" + JSON.stringify({ name: this.user.name })
+      console.log('onChangedUsername, broadcasting', jsonStr);
+      this.ion.broadcast(jsonStr)
+    },
     async connect() {
       var _this = this
       var iota = new IOTA({
