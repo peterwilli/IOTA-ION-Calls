@@ -37,6 +37,8 @@ import ShareWindow from '@/components/ShareWindow.vue'
 import UserVideo from '@/components/UserVideo.vue'
 import TextInput from '@/components/TextInput.vue'
 import LinkifiedText from '@/components/LinkifiedText.vue'
+import HonestDebugger from '@/utils/HonestDebugger.js'
+
 const blake = require('blakejs')
 const Peer = ION.utils.Peer
 
