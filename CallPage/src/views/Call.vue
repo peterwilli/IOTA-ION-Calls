@@ -15,12 +15,12 @@
       <div slot="buttons-right">
       </div>
     </toolbar>
-    <call ref="call" v-show="overlay === null" :honest-debugger="honestDebugger"></call>
+    <call ref="call" v-show="overlay === null" :iota="iota" :honest-debugger="honestDebugger"></call>
     <window v-if="overlay === 'changeNickname'">
       <name-input :onFinish="onChangeNickname"></name-input>
     </window>
     <window v-if="overlay === 'sendBugReport'">
-      <bug-report-form :honest-debugger="honestDebugger" :onFinish="onSendBugReport"></bug-report-form>
+      <bug-report-form :iota="iota" :honest-debugger="honestDebugger" :onFinish="onSendBugReport"></bug-report-form>
     </window>
   </div>
 </template>
@@ -34,6 +34,7 @@ import Toolbar from '@/components/Toolbar/Toolbar.vue'
 import ToolbarButton from '@/components/Toolbar/ToolbarButton.vue'
 import store from 'store'
 import HonestDebugger from '@/utils/HonestDebugger.js'
+import IOTA from 'iota.lib.js'
 
 export default {
   components: {
@@ -53,7 +54,7 @@ export default {
       this.overlay = null
     },
     onSendBugReport() {
-
+      this.overlay = null
     },
     loadDebugger() {
       this.honestDebugger = new HonestDebugger('1b967fe15dafc289770946a57e8659f4c89ec1f57b29c544edd2929f2cb39279')
@@ -63,7 +64,11 @@ export default {
       window.honestDebugger = this.honestDebugger
     }
   },
-  beforeMount() {    
+  beforeMount() {
+    this.iota = new IOTA({
+      provider: 'https://nodes.testnet.iota.org:443/'
+    })
+
     this.loadDebugger()
   },
   mounted() {
@@ -71,6 +76,7 @@ export default {
   },
   data() {
     return {
+      iota: null,
       user: null,
       overlay: null,
       honestDebugger: null

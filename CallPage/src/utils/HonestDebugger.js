@@ -26,10 +26,10 @@ export default class HonestDebugger {
   getSecuredLogs() {
     var rawLogs = this.getRawFilteredLogs();
     var compressedLogs = lzjs.compress(rawLogs);
-    this.oldConsole.log('lengths', rawLogs.length, compressed.length);
+    this.oldConsole.log('lengths', rawLogs.length, compressedLogs.length);
     var encryptedLogs = CryptoJS.AES.encrypt(compressedLogs, this.encryptionKey).toString()
     return {
-      publicKey: this.publicKey,
+      publicKey: this.key.getPublic().encode('hex'),
       enc: encryptedLogs
     }
   }

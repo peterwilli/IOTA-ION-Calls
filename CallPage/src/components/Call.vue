@@ -42,7 +42,7 @@ const blake = require('blakejs')
 const Peer = ION.utils.Peer
 
 export default {
-  props: ['honestDebugger'],
+  props: ['honestDebugger', 'iota'],
   components: {
     UserVideo,
     ShareWindow,
@@ -118,9 +118,7 @@ export default {
     },
     async connect() {
       var _this = this
-      var iota = new IOTA({
-        provider: 'https://nodes.testnet.iota.org:443/'
-      })
+      var iota = _this.iota
       _this.ion = new ION(iota, "xSzG20i5l5kwCHXm", this.$route.params.seed, this.myTag)
       _this.ion.connect({})
       _this.ion.on('error', (e) => {
