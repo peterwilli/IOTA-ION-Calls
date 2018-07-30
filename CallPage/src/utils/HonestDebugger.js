@@ -3,15 +3,22 @@ var EC = require('elliptic').ec;
 var ec = new EC('curve25519');
 var CryptoJS = require("crypto-js")
 var lzjs = require('lzjs')
+var debounce = require('debounce')
 
 export default class HonestDebugger {
   constructor(publicKey) {
     this.filters = []
     this.messages = []
     this.oldConsole = null
+    this.keep = 0
     this.key = ec.genKeyPair()
     this.publicKey = ec.keyFromPublic(publicKey, 'hex').getPublic()
     this.encryptionKey = this.key.derive(this.publicKey).toArray().map(String.fromCharCode).join("")
+    this.cleanOldLogs = debounce(() => {
+      if(this.keep > 0 && this.messages.length > this.keep) {
+        this.messages = this.messages.slice(this.messages.length - this.keep, this.messages.length)
+      }
+    }, 100)
 
     // To eliminate any weak bits from Diffie-Helman
     this.encryptionKey = CryptoJS.SHA256(this.encryptionKey).toString()
@@ -57,6 +64,7 @@ export default class HonestDebugger {
             type: k,
             msg
           });
+          _this.cleanOldLogs()
           oldConsole[k](...msg);
         }
       });

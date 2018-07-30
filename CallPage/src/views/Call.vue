@@ -60,8 +60,9 @@ export default {
       this.honestDebugger = new HonestDebugger('1b967fe15dafc289770946a57e8659f4c89ec1f57b29c544edd2929f2cb39279')
       // Filter out any IP adresses
       this.honestDebugger.filters.push(/(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/g)
+      // Logs grow pretty quickly, so it's best to keep them low, even if that means missing data
+      this.honestDebugger.keep = 500
       this.honestDebugger.start()
-      window.honestDebugger = this.honestDebugger
     }
   },
   beforeMount() {

@@ -104,7 +104,7 @@ export default {
     },
     viewLogs(e) {
       e.preventDefault()
-      this.reviewLogs = this.honestDebugger.getRawFilteredLogs()
+      this.reviewLogs = JSON.stringify(JSON.parse(this.honestDebugger.getRawFilteredLogs()), null, 2)
     },
     goBack(e) {
       e.preventDefault()
