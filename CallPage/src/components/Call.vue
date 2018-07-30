@@ -37,12 +37,12 @@ import ShareWindow from '@/components/ShareWindow.vue'
 import UserVideo from '@/components/UserVideo.vue'
 import TextInput from '@/components/TextInput.vue'
 import LinkifiedText from '@/components/LinkifiedText.vue'
-import HonestDebugger from '@/utils/HonestDebugger.js'
 
 const blake = require('blakejs')
 const Peer = ION.utils.Peer
 
 export default {
+  props: ['honestDebugger'],
   components: {
     UserVideo,
     ShareWindow,
@@ -64,6 +64,8 @@ export default {
       this.loadUser()
       if(this.user) {
         this.myTag = this.$route.params.myTag
+        this.honestDebugger.filters.push(new RegExp(this.myTag, 'g'))
+        this.honestDebugger.filters.push(new RegExp(this.$route.params.seed, 'g'))
         console.log(`Call using ION ${ION.version}`);
 
         this.myStream = await getUserMedia({

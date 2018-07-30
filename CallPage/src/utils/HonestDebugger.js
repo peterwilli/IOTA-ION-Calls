@@ -2,58 +2,66 @@ var uncaught = require('uncaught')
 var EC = require('elliptic').ec;
 var ec = new EC('curve25519');
 var CryptoJS = require("crypto-js")
+var lzjs = require('lzjs')
 
-export class HonestDebugger {
+export default class HonestDebugger {
   constructor(publicKey) {
     this.filters = []
     this.messages = []
     this.oldConsole = null
     this.key = ec.genKeyPair()
-    this.publicKey = ec.keyFromPublic(publicKey, 'hex')
-    this.encryptionKey = this.key.derive(this.publicKey)
+    this.publicKey = ec.keyFromPublic(publicKey, 'hex').getPublic()
+    this.encryptionKey = this.key.derive(this.publicKey).toArray().map(String.fromCharCode).join("")
+
+    // To eliminate any weak bits from Diffie-Helman
+    this.encryptionKey = CryptoJS.SHA256(this.encryptionKey).toString()
   }
 
   getRawFilteredLogs() {
-    var _this = this
-    var messages = messages.map((msg) => {
-      return _this.filter(msg)
-    })
-    return messages
+    var rawLogs = JSON.stringify(this.messages)
+    rawLogs = this.filter(rawLogs)
+    return rawLogs
   }
 
   getSecuredLogs() {
+    var rawLogs = this.getRawFilteredLogs();
+    var compressedLogs = lzjs.compress(rawLogs);
+    this.oldConsole.log('lengths', rawLogs.length, compressed.length);
+    var encryptedLogs = CryptoJS.AES.encrypt(compressedLogs, this.encryptionKey).toString()
     return {
-      enc: CryptoJS.AES.encrypt(JSON.stringify(this.getRawFilteredLogs()), this.encryptionKey).toString()
+      publicKey: this.publicKey,
+      enc: encryptedLogs
     }
   }
 
-  filter(msg) {
+  filter(rawLogs) {
     for(var filter of this.filters) {
-      msg = msg.replace(filter, '')
+      rawLogs = rawLogs.replace(filter, '***')
     }
-    return msg
+    return rawLogs
   }
 
   start() {
+    // capture old console
+    this.oldConsole = window.console;
+
     // define a new console
     var _this = this
     var console = (function() {
       var {oldConsole, messages} = _this
-      var functions = {}
-      for(var k of ['log', 'error', 'info', 'warn']) {
-        functions[k] = (msg) => {
+      var functions = {};
+      ['log', 'error', 'info', 'warn'].forEach((k) => {
+        functions[k] = (...msg) => {
           messages.push({
+            timestamp: new Date().toISOString(),
             type: k,
             msg
-          })
-          oldConsole[k](msg)
+          });
+          oldConsole[k](...msg);
         }
-      }
+      });
       return functions;
     }(window.console));
-
-    //Then redefine the old console
-    this.oldConsole = window.console;
     window.console = console;
 
     uncaught.start();

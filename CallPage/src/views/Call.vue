@@ -8,13 +8,19 @@
         <toolbar-button @click.native="overlay = 'changeNickname'">
           <div>Change Nickname</div>
         </toolbar-button>
+        <toolbar-button @click.native="overlay = 'sendBugReport'">
+          <div>Send Bug Report</div>
+        </toolbar-button>
       </div>
       <div slot="buttons-right">
       </div>
     </toolbar>
-    <call ref="call" v-show="overlay === null"></call>
+    <call ref="call" v-show="overlay === null" :honest-debugger="honestDebugger"></call>
     <window v-if="overlay === 'changeNickname'">
       <name-input :onFinish="onChangeNickname"></name-input>
+    </window>
+    <window v-if="overlay === 'sendBugReport'">
+      <bug-report-form :honest-debugger="honestDebugger" :onFinish="onSendBugReport"></bug-report-form>
     </window>
   </div>
 </template>
@@ -23,17 +29,20 @@
 import Window from '@/components/Window.vue'
 import Call from '@/components/Call.vue'
 import NameInput from '@/components/NameInput.vue'
+import BugReportForm from '@/components/BugReportForm.vue'
 import Toolbar from '@/components/Toolbar/Toolbar.vue'
 import ToolbarButton from '@/components/Toolbar/ToolbarButton.vue'
 import store from 'store'
+import HonestDebugger from '@/utils/HonestDebugger.js'
 
 export default {
   components: {
-    Window, NameInput, Call, Toolbar, ToolbarButton
+    Window, NameInput, Call, Toolbar, ToolbarButton, BugReportForm
   },
   methods: {
     loadUser() {
       this.user = store.get('user')
+      this.honestDebugger.filters.push(new RegExp(this.user.name, 'g'))
     },
     onSetNickname() {
       this.loadUser()
@@ -42,7 +51,20 @@ export default {
       this.loadUser()
       this.$refs.call.onChangeNickname()
       this.overlay = null
+    },
+    onSendBugReport() {
+
+    },
+    loadDebugger() {
+      this.honestDebugger = new HonestDebugger('1b967fe15dafc289770946a57e8659f4c89ec1f57b29c544edd2929f2cb39279')
+      // Filter out any IP adresses
+      this.honestDebugger.filters.push(/(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/g)
+      this.honestDebugger.start()
+      window.honestDebugger = this.honestDebugger
     }
+  },
+  beforeMount() {    
+    this.loadDebugger()
   },
   mounted() {
     this.loadUser()
@@ -50,7 +72,8 @@ export default {
   data() {
     return {
       user: null,
-      overlay: null
+      overlay: null,
+      honestDebugger: null
     }
   }
 }
