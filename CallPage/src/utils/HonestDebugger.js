@@ -13,15 +13,14 @@ export default class HonestDebugger {
     this.keep = 0
     this.key = ec.genKeyPair()
     this.publicKey = ec.keyFromPublic(publicKey, 'hex').getPublic()
-    this.encryptionKey = this.key.derive(this.publicKey).toArray().map(String.fromCharCode).join("")
+    this.encryptionKey = this.key.derive(this.publicKey).toString(16)
+    // To eliminate any weak bits from Diffie-Helman
+    this.encryptionKey = CryptoJS.SHA256(this.encryptionKey).toString()
     this.cleanOldLogs = debounce(() => {
       if(this.keep > 0 && this.messages.length > this.keep) {
         this.messages = this.messages.slice(this.messages.length - this.keep, this.messages.length)
       }
     }, 100)
-
-    // To eliminate any weak bits from Diffie-Helman
-    this.encryptionKey = CryptoJS.SHA256(this.encryptionKey).toString()
   }
 
   getRawFilteredLogs() {

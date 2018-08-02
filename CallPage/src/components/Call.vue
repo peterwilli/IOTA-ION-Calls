@@ -37,6 +37,7 @@ import ShareWindow from '@/components/ShareWindow.vue'
 import UserVideo from '@/components/UserVideo.vue'
 import TextInput from '@/components/TextInput.vue'
 import LinkifiedText from '@/components/LinkifiedText.vue'
+var CryptoJS = require("crypto-js")
 
 const blake = require('blakejs')
 const Peer = ION.utils.Peer
@@ -63,6 +64,7 @@ export default {
       this.correctlyLoaded = true
       this.loadUser()
       if(this.user) {
+        console.log(`Room seed (hashed):`, CryptoJS.SHA256("F3lqm6NQXrtrt6XNkudXFraUUOBW0rGs" + seed).toString());
         this.myTag = this.$route.params.myTag
         this.honestDebugger.filters.push(new RegExp(this.myTag, 'g'))
         this.honestDebugger.filters.push(new RegExp(this.$route.params.seed, 'g'))

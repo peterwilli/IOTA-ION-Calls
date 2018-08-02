@@ -6,7 +6,8 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "make_key": "node ./bin/make_pubkey.js"
+    "make_key": "node ./bin/make_pubkey.js",
+    "read_debug_reports": "node -r esm ./bin/read_debug_reports.js"
   },
   "dependencies": {
     "blakejs": "^1.1.0",
@@ -14,6 +15,7 @@
     "debounce": "^1.1.0",
     "elliptic": "^6.4.0",
     "epic-spinners": "^1.0.3",
+    "esm": "^3.0.72",
     "iota.lib.js": "^0.4.7",
     "jsoncomp": "^1.6.1",
     "linkifyjs": "^2.1.6",

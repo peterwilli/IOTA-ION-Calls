@@ -58,6 +58,8 @@
 
 <script>
 import store from 'store'
+import ION from 'iota-ion.lib.js'
+
 import {
   AtomSpinner
 } from 'epic-spinners'
@@ -68,6 +70,13 @@ export default {
     AtomSpinner
   },
   methods: {
+    ephemeralAddr(offset = 0) {
+      var iota = this.iota
+      var prefix = 'oc8O51fExaTji92E'
+      var iotaSeed = ION.utils.tryteGen(prefix, ION.utils.tempKey(prefix, '8BA98FbHtHzzl8QI', undefined, 60 * 60 * 24, 0))
+      var addr = iota.utils.addChecksum(iotaSeed)
+      return addr
+    },
     async sendTransfer(transfers) {
       const { iota } = this
       return new Promise(function(resolve, reject) {
@@ -88,8 +97,10 @@ export default {
 
       // Convert to trytes
       var encryptedTrytes = iota.utils.toTrytes(JSON.stringify(securedLogs))
+      var address = this.ephemeralAddr()
+      console.log(`Sending bug report to`, address);
       var transfers = [{
-        address: 'IONBUGREPORTSIONBUGREPORTSIONBUGREPORTSIONBUGREPORTSIONBUGREPORTSPETERSENDSHISLUVHNMQP9FRW',
+        address,
         value: 0,
         message: encryptedTrytes
       }]
