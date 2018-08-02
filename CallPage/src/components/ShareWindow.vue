@@ -6,6 +6,7 @@
         People will be able to call you with this link while you keep this tab open.
       </p>
       <b>Beta notice:</b> Tested on Chrome on desktop and Android, with iOS only Safari has WebRTC, but we weren't able to get it to work with ION at the moment.
+      <b>Please use the bug report function on the top-left if you experience any problems!</b>
       <br /><br />
       <text-input ref="urlField" v-model="url" @click.native="onUrlClick"></text-input>
     </div>

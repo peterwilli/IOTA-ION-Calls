@@ -5,7 +5,7 @@
         <user-video :on-update="videoUpdated" :name="user.name" status="connected">
           <video ref="my_vid"></video>
         </user-video>
-        <user-video :on-update="videoUpdated" v-for="val, key in connections" :name="val.name" :status="val.status">
+        <user-video :on-update="videoUpdated" v-for="val, key in connections" :key="key" :name="val.name" :status="val.status">
           <video v-show="val.status === 'connected'" :ref="'vid:' + key"></video>
         </user-video>
       </div>
@@ -16,9 +16,9 @@
     </div>
     <div class="messages">
       <div class="inner">
-        <div v-for="msg in messages" class="message">
+        <div v-for="msg in messages" :key="'msg' + blake2sHex(msg.message)" class="message">
           <span class="from">{{ msg.from }}:</span>
-            <span :key="'msg' + blake2sHex(msg.message)" class="content"><linkified-text :text="msg.message"></linkified-text></span>
+          <span class="content"><linkified-text :text="msg.message"></linkified-text></span>
         </div>
       </div>
     </div>
