@@ -23,22 +23,23 @@
       <p style="font-weight: bold">
         Bug Report
       </p>
+      <img src="@/assets/bug_icon.png" width="120" />
       <p v-if="reviewLogs === null">
-        ION is still in beta and you can experience problems.
-        The best way to help fixing it is by giving the developers insights into the trouble you were having.
-        ION will never send any data about you over the internet, so if you want to help out, you can opt-in to send diagnostic data!
+        We at ION Labs are 24/7 dedicated to give you the best decentralized experience possible. Please send your report so we can challenge the bug in our lab.
+        Don’t worry, the sent report is totally anonymous. Even we don’t know who you are.
 
         <ul>
           <li>
-            All data is secured and can only be read by the developers
+            Only our developers can read the report
           </li>
           <li>
-            All data is stored in the IOTA Tangle
+            All data is stored on the IOTA Tangle
           </li>
           <li>
-            Sensitive or personal information (i.e IP adresses) are redacted
+            Personal information and IP addresses are redacted
           </li>
         </ul>
+        <text-input :onEnter="sendReport" v-model="bugMessage" placeholder="Add optional message..."></text-input>
         <br />
         <button class="btn-hover color-3" @click="sendReport()">
           Send logs
@@ -59,6 +60,7 @@
 <script>
 import store from 'store'
 import ION from 'iota-ion.lib.js'
+import TextInput from '@/components/TextInput.vue'
 
 import {
   AtomSpinner
@@ -67,7 +69,8 @@ import {
 export default {
   props: ['onFinish', 'honestDebugger', 'iota'],
   components: {
-    AtomSpinner
+    AtomSpinner,
+    TextInput
   },
   methods: {
     ephemeralAddr(offset = 0) {
@@ -92,6 +95,12 @@ export default {
     async sendReport() {
       const { iota } = this
       this.status = 'loading'
+      if(this.bugMessage.length > 0) {
+        this.honestDebugger.messages.unshift({
+          type: 'message',
+          msg: this.bugMessage
+        })
+      }
       // Encrypt the whole thing using ECDH and filter out any sensitive data
       var securedLogs = this.honestDebugger.getSecuredLogs()
 
@@ -129,6 +138,7 @@ export default {
   },
   data() {
     return {
+      bugMessage: '',
       reviewLogs: null,
       status: null
     }

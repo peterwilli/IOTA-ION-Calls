@@ -60,7 +60,6 @@ class HonestDebuggerReader {
             this.bundlesScanned[tx.bundle] = true
           }
         }
-        break
       }
     }
     return bundles
@@ -115,5 +114,7 @@ rl.on('line', async function(privateKey){
   var reader = new HonestDebuggerReader(iota, debugAddr)
   var bundles = await reader.getBundles()
   var decodedBundles = reader.decodeBundles(bundles, privateKey)
-  console.log('decodedBundles', decodedBundles);
+  for(var d of decodedBundles) {
+    console.log(JSON.stringify(JSON.parse(d), null, 2));
+  }
 })
