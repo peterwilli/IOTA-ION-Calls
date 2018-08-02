@@ -9,6 +9,9 @@
   require("@/style/tooltip.styl")
   require("@/style/noty.css")
   require("@/style/animate.css")
+  export default {
+
+  }
 </script>
 
 <style lang="stylus">
