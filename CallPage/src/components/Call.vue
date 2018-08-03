@@ -183,7 +183,7 @@ export default {
         const { user } = obj_
         var connections = Object.assign({}, _this.connections)
         var conn = connections[user]
-        if(conn.peer) {
+        if(conn && conn.peer) {
           conn.peer.destroy()
         }
         delete connections[user]
