@@ -133,22 +133,28 @@ export default {
         console.log('sending', jsonStr, 'to', obj.user);
         _this.ion.send(obj.user, jsonStr)
         console.log('Connected! Upgrading connection to video chat, initiator:', _this.ion.peers[obj.user].initiator);
-        var peer = new Peer({
+        var peerOptions = {
           // Upgrade the Peer to video, we use the ION initiator election results to immediatly come up with an initiator.
           initiator: _this.ion.peers[obj.user].initiator,
           trickle: true,
+          stream: _this.myStream,
           config: {
-            iceServers: [{
-              urls: 'stun:stun.xs4all.nl:3478'
-            }, {
-              urls: 'stun:stun1.l.google.com:19302'
-            }, {
-              urls: 'stun:stun2.l.google.com:19302'
-            }, {
-              urls: 'stun:stun.vodafone.ro:3478'
-            }]
+            iceServers: _this.ion.iceServers
           }
-        })
+        }
+        // if(peerOptions.initiator) {
+        //   peerOptions.offerConstraints = {
+        //     offerToReceiveAudio: true,
+        //     offerToReceiveVideo: true
+        //   }
+        // }
+        // else {
+        //   peerOptions.answerConstraints = {
+        //     offerToReceiveAudio: false,
+        //     offerToReceiveVideo: false
+        //   }
+        // }
+        var peer = new Peer(peerOptions)
         _this.$set(_this.connections, obj.user, {
           peer,
           status: 'upgrading'
@@ -157,25 +163,29 @@ export default {
           console.log(`signal to ${obj.user}:`, JSON.stringify(data));
           _this.ion.send(obj.user, "signal:" + JSON.stringify(data))
         })
+
         peer.on('connect', async () => {
-          var newConn = Object.assign({}, _this.connections[obj.user])
-          newConn.status = 'acquiring_stream'
-          _this.connections[obj.user] = newConn
-
-          peer.on('stream', (stream) => {
-            const k = `vid:${obj.user}`
-            _this.$refs[k][0].srcObject = stream
-            _this.$refs[k][0].volume = 1
-            _this.$refs[k][0].play()
-            // TODO: Base this on person currently speaking
-            _this.currentlyTalking = _this.connections[obj.user]
-
+          console.log('BITCONNEEECT!!');
+          if(_this.connections[obj.user].status !== 'connected') {
             var newConn = Object.assign({}, _this.connections[obj.user])
-            newConn.status = 'connected'
+            newConn.status = 'acquiring_stream'
             _this.connections[obj.user] = newConn
-          })
+          }
+        })
 
-          peer.addStream(_this.myStream)
+        peer.on('stream', (stream) => {
+          console.log('STREAM!', stream);
+          const k = `vid:${obj.user}`
+          _this.$refs[k][0].srcObject = stream
+          _this.$refs[k][0].volume = 1
+          _this.$refs[k][0].play()
+
+          // TODO: Base this on person currently speaking
+          _this.currentlyTalking = _this.connections[obj.user]
+
+          var newConn = Object.assign({}, _this.connections[obj.user])
+          newConn.status = 'connected'
+          _this.connections[obj.user] = newConn
         })
       })
 
@@ -183,7 +193,7 @@ export default {
         const { user } = obj_
         var connections = Object.assign({}, _this.connections)
         var conn = connections[user]
-        if(conn.peer) {
+        if(conn && conn.peer) {
           conn.peer.destroy()
         }
         delete connections[user]

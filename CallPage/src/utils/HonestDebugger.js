@@ -73,7 +73,7 @@ export default class HonestDebugger {
 
     uncaught.start();
     uncaught.addListener(function(error) {
-      console.error('Uncaught error or rejection: ', error.message);
+      console.error('Uncaught error or rejection:', error);
     });
   }
 
