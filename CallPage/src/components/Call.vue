@@ -70,10 +70,19 @@ export default {
         this.honestDebugger.filters.push(new RegExp(this.$route.params.seed, 'g'))
         console.log(`Call using ION ${ION.version}`);
 
-        this.myStream = await getUserMedia({
-          video: true,
-          audio: true
-        })
+        try {
+          this.myStream = await getUserMedia({
+            video: true,
+            audio: true
+          })
+        }
+        catch(e) {
+          console.warn('audio-video stream error', e, 'trying again with audio only...')
+          this.myStream = await getUserMedia({
+            video: false,
+            audio: true
+          })
+        }
         this.$refs.my_vid.srcObject = this.myStream
         this.$refs.my_vid.volume = 0
         this.$refs.my_vid.play()
